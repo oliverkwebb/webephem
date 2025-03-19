@@ -1,0 +1,7 @@
+[package]
+name = "deskephem"
+version = "0.1.1"
+edition = "2024"
+
+[dependencies]
+pracstro = "0.2.1"
