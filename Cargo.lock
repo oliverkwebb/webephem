@@ -11,6 +11,6 @@ dependencies = [
 
 [[package]]
 name = "pracstro"
-version = "0.2.2"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f455d138b607f2051b46b9585598b75a5d0d397792e984037ab9b67fce63a8f5"
+checksum = "ee8e5687860f39a5ec16d5c6e3a19c66052df8b65296adde00b9e4a52d368255"

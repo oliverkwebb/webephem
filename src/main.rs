@@ -12,7 +12,7 @@ enum PerView {
 enum CoordView {
     Equatorial,
     Horizontal,
-    Ecliptic,
+    //Ecliptic,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -26,7 +26,6 @@ enum CelObj {
 struct RefFrame {
     lat: time::Period,
     long: time::Period,
-    time: time::Period,
     date: time::Date,
 }
 
@@ -76,9 +75,6 @@ impl fmt::Display for Value {
                     "{:02}h{:02}m{:02.1}s {:+}°{:02}'{:.1}\"",
                     rh, rm, rs, dd, dm, ds
                 )
-            }
-            Value::Crd(c, _v) => {
-                todo!()
             }
             Value::Num(n) => write!(f, "{:0.2}", n),
             Value::Obj(p) => write!(f, "{:?}", p),
@@ -163,7 +159,7 @@ fn read_numerical(s: &str) -> Option<Value> {
     }
 }
 
-fn try_parse_function(s: &str, stack: &mut Vec<Value>) -> Option<()> {
+fn try_parse_function(s: &str, stack: &mut Vec<Value>, rf: &mut RefFrame) -> Option<()> {
     match s {
         ".s" => stack
             .iter()
@@ -172,16 +168,15 @@ fn try_parse_function(s: &str, stack: &mut Vec<Value>) -> Option<()> {
             .for_each(|(n, x)| println!("#{:02}: {}", n, x)),
         "." => println!("{}", stack.pop()?),
         "location" => match stack.pop()? {
-            Value::Obj(CelObj::Planet(p)) => stack.push(Value::Crd(
-                p.location(time::Date::now()),
-                CoordView::Equatorial,
-            )),
+            Value::Obj(CelObj::Planet(p)) => {
+                stack.push(Value::Crd(p.location(rf.date), CoordView::Equatorial))
+            }
             Value::Obj(CelObj::Moon) => stack.push(Value::Crd(
-                moon::MOON.location(time::Date::now()),
+                moon::MOON.location(rf.date),
                 CoordView::Equatorial,
             )),
             Value::Obj(CelObj::Sun) => stack.push(Value::Crd(
-                sol::where_is_sun(time::Date::now()),
+                sol::sun::location(rf.date),
                 CoordView::Equatorial,
             )),
             _ => return None,
@@ -193,37 +188,47 @@ fn try_parse_function(s: &str, stack: &mut Vec<Value>) -> Option<()> {
             _ => return None,
         },
         "distance" => match stack.pop()? {
-            Value::Obj(CelObj::Planet(p)) => stack.push(Value::Num(p.distance(time::Date::now()))),
-            Value::Obj(CelObj::Moon) => {
-                stack.push(Value::Num(moon::MOON.distance(time::Date::now())))
-            }
+            Value::Obj(CelObj::Planet(p)) => stack.push(Value::Num(p.distance(rf.date))),
+            Value::Obj(CelObj::Moon) => stack.push(Value::Num(moon::MOON.distance(rf.date))),
+            _ => return None,
+        },
+        "phase" => match stack.pop()? {
+            Value::Obj(CelObj::Planet(p)) => stack.push(Value::Num(p.illumfrac(rf.date))),
+            Value::Obj(CelObj::Moon) => stack.push(Value::Num(moon::MOON.phase(rf.date).1)),
             _ => return None,
         },
         "rise" => match stack.pop()? {
             Value::Crd(c, _) => stack.push(Value::Per(
-                c.riseset(
-                    time::Date::now(),
-                    time::Period::from_degrees(0.0),
-                    time::Period::from_degrees(0.0),
-                )
-                .unwrap()
-                .0,
+                c.riseset(rf.date, rf.lat, rf.long).unwrap().0,
                 PerView::Time,
             )),
             _ => return None,
         },
         "now" => stack.push(Value::Date(time::Date::now())),
+        "isdate" => match stack.pop()? {
+            Value::Date(d) => rf.date = d,
+            _ => return None,
+        },
+        "horiz" => match stack.pop()? {
+            Value::Crd(c, _) => stack.push(Value::Crd(c, CoordView::Horizontal)),
+            _ => return None,
+        },
         _ => return None,
     };
 
     Some(())
 }
 
-fn parse_word(s: &str, stack: &mut Vec<Value>, catalog: &HashMap<&str, CelObj>) -> Option<()> {
+fn parse_word(
+    s: &str,
+    stack: &mut Vec<Value>,
+    catalog: &HashMap<&str, CelObj>,
+    rf: &mut RefFrame,
+) -> Option<()> {
     if catalog.contains_key(s) {
         Some(stack.push(Value::Obj(catalog.get(s)?.clone())))
     } else {
-        match try_parse_function(s, stack) {
+        match try_parse_function(s, stack, rf) {
             Some(()) => Some(()),
             _ => Some(stack.push(read_numerical(s)?)),
         }
@@ -235,7 +240,6 @@ fn read_catalog() -> HashMap<&'static str, CelObj> {
         ("sun", CelObj::Sun),
         ("mercury", CelObj::Planet(sol::MERCURY)),
         ("venus", CelObj::Planet(sol::VENUS)),
-        ("earth", CelObj::Planet(sol::EARTH)),
         ("moon", CelObj::Moon),
         ("mars", CelObj::Planet(sol::MARS)),
         ("jupiter", CelObj::Planet(sol::JUPITER)),
@@ -249,10 +253,9 @@ fn read_catalog() -> HashMap<&'static str, CelObj> {
 fn main() {
     let mut stack: Vec<Value> = Vec::new();
     let catalog = read_catalog();
-    let myrf: RefFrame = RefFrame {
+    let mut myrf: RefFrame = RefFrame {
         lat: time::Period::from_degrees(0.0),
         long: time::Period::from_degrees(0.0),
-        time: time::Period::from_decimal(20.0),
         date: time::Date::now(),
     };
 
@@ -261,7 +264,7 @@ fn main() {
         .map(|x| x.to_lowercase())
         .enumerate()
         .for_each(|(n, x)| {
-            parse_word(&x, &mut stack, &catalog)
+            parse_word(&x, &mut stack, &catalog, &mut myrf)
                 .unwrap_or_else(|| panic!("Failed to parse word {} `{}`", n, x))
         });
 

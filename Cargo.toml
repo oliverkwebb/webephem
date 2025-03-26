@@ -4,4 +4,4 @@ version = "0.1.1"
 edition = "2021"
 
 [dependencies]
-pracstro = "0.2.2"
+pracstro = "0.3.1"
