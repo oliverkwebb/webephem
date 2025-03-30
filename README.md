@@ -11,22 +11,21 @@ MMMMMMMMMMM                            MMMMMMMMMMMM 88
                                                     dP
 ```
 
-deskephem is a modular, idiomatic CLI astronomy calculator, which can get the properties of celestial objects like the moon, planets, stars, and sun.
-These properties include:
-
-* Coordinates in the sky (equatorial, horizontal, and azimuthal)
-* Rise and set times
-* Phase
-* Brightness
-* Distance
-* Angular Size
-
 ```shell
-$ deskephem Venus location # Gets the current coordinates of Venus
+$ deskephem moon phase # Werewolf early warning system
+🌑 New (2.31%)
+$ deskephem Venus equ # Coordinates of Venus
 23h50m21.9s +7°55'37.4"
-$ deskephem 1781-03-13 isdate Uranus location # The location of Uranus at William Hershel's first observation
-05h48m34.6s +23°38'6.4"
+$ deskephem -d 1781-03-13 -l 53n -L 1.8w Uranus horiz,magnitude # Location and brightness of Uranus at William Herschel's first observation
+278°45'42.91" 23°22'1.52" 5.60
 ```
 
-deskephem works via reverse polish notation (RPN) to be as simplistic as possible, under this model, it keeps a stack with
-values on it, and functions can manipulate this stack.
+deskephem is a modular CLI astronomy calculator, which can get the properties of celestial
+objects such as the moon, planets, stars, and sun. These properties include:
+
+* Coordinates in the sky (equatorial, horizontal, ecliptic)
+* Rise and set times
+* Phase (Emoji, Illuminated Fraction, Name)
+* Brightness (Magnitude)
+* Distance
+* Angular Size
