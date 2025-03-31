@@ -4,10 +4,7 @@ use value::*;
 pub mod output;
 pub mod value;
 
-type Step = (f64, f64, f64);
-
 mod parse {
-    use crate::Step;
     use chrono::prelude::*;
     use pracstro::time;
 
@@ -16,22 +13,28 @@ mod parse {
     }
 
     /// A step in time, returns (years, months, days, hours, minutes, seconds)
-    pub fn step(sm: &str) -> Result<Step, &'static str> {
-    	let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
+    pub fn step(sm: &str) -> Result<time::TimeStep, &'static str> {
+        let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if let Some(n) = suffix_num(s, "y") {
-            Ok((n, 0.0, 0.0))
+            Ok(time::TimeStep::from((n, 0.0, 0.0, 0.0, 0.0, 0.0)))
         } else if let Some(n) = suffix_num(s, "mon") {
-            Ok((0.0, n, 0.0))
+            Ok(time::TimeStep::from((0.0, n, 0.0, 0.0, 0.0, 0.0)))
         } else if let Some(n) = suffix_num(s, "w") {
-            Ok((0.0, 0.0, n * 7.0))
+            Ok(time::TimeStep::from((0.0, 0.0, n * 7.0, 0.0, 0.0, 0.0)))
         } else if let Some(n) = suffix_num(s, "d") {
-            Ok((0.0, 0.0, n))
+            Ok(time::TimeStep::from((0.0, 0.0, n, 0.0, 0.0, 0.0)))
+        } else if let Some(n) = suffix_num(s, "h") {
+            Ok(time::TimeStep::from((0.0, 0.0, 0.0, n, 0.0, 0.0)))
+        } else if let Some(n) = suffix_num(s, "min") {
+            Ok(time::TimeStep::from((0.0, 0.0, 0.0, 0.0, n, 0.0)))
+        } else if let Some(n) = suffix_num(s, "s") {
+            Ok(time::TimeStep::from((0.0, 0.0, 0.0, 0.0, 0.0, n)))
         } else {
             Err("Bad interval")
         }
     }
 
-    pub fn ephemq(s: &str) -> Result<(time::Date, Step, time::Date), &'static str> {
+    pub fn ephemq(s: &str) -> Result<(time::Date, time::TimeStep, time::Date), &'static str> {
         let mut eq = s.split(',');
         let start = eq.next().ok_or("Bad CSV")?;
         let ste = eq.next().ok_or("Bad CSV")?;
@@ -41,7 +44,7 @@ mod parse {
 
     /// The inbuilt RFC3339/ISO6901 date parser in chrono does not support subsets of the formatting.
     pub fn date(sm: &str) -> Result<time::Date, &'static str> {
-    	let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
+        let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if s == "now" {
             Ok(time::Date::now())
         } else if s.starts_with("@") {
@@ -74,7 +77,7 @@ mod parse {
     }
 
     pub fn angle(s: &str) -> Result<time::Period, &'static str> {
-    	let sl = &s.to_lowercase(); // This can usually be guaranteed, except in argument parsing
+        let sl = &s.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if let Some(n) = suffix_num(sl, "e") {
             Ok(time::Period::from_degrees(n))
         } else if let Some(n) = suffix_num(sl, "w") {
@@ -172,195 +175,6 @@ mod query {
         }
     }
 
-    mod rpn_parse {
-        use crate::parse;
-        use super::get_catobj;
-    	use std::collections::HashMap;
-        use crate::query::property_of;
-        use crate::value::*;
-        use pracstro::time;
-
-        /// Reads anything that at its core is a number,
-        /// These numbers are floating point and can have prefixes or suffixes
-        ///
-        /// Prefixes:
-        ///
-        /// | Prefix | Meaning       |
-        /// |--------|---------------|
-        /// | `@`    | Unix Date     |
-        ///
-        /// Suffixes:
-        ///
-        /// | Suffix | Meaning       |
-        /// |--------|---------------|
-        /// | `U`    | Unix Date     |
-        /// | `JD`   | Julian Day    |
-        /// | `J`    | Julian Day    |
-        /// | `D`    | Degrees       |
-        /// | `d`    | Degrees       |
-        /// | `deg`  | Degrees       |
-        /// | `°`    | Degrees       |
-        /// | `rad`  | Radians       |
-        /// | `H`    | Decimal Hours |
-        /// | `h`    | Decimal Hours |
-        /// | `rad`  | Radians       |
-        ///
-        fn primative(s: &str) -> Option<Value> {
-            if let Ok(d) = parse::date(s) {
-                Some(Value::Date(d))
-            } else if let Ok(d) = parse::angle(s) {
-                Some(Value::Per(d, PerView::Angle))
-            }
-            // Time
-            else if s.ends_with("h") {
-                Some(Value::Per(
-                    time::Period::from_decimal((s.strip_suffix("H"))?.parse().ok()?),
-                    PerView::Time,
-                ))
-            } else {
-                Some(Value::Num(s.parse().ok()?))
-            }
-        }
-
-        fn function(s: &str, stack: &mut Vec<Value>, rf: &mut RefFrame) -> Option<()> {
-            if let Value::Obj(c) = &stack[stack.len() - 1] {
-                if let Ok(v) = property_of(c, s, rf) {
-                    stack.push(v);
-                    return Some(());
-                }
-            }
-            match s {
-                ".s" => stack
-                    .iter()
-                    .enumerate()
-                    .rev()
-                    .for_each(|(n, x)| println!("#{:02}: {}", n, x)),
-                "." => println!("{}", stack.pop()?),
-                "between" => match (stack.pop()?, stack.pop()?) {
-                    (Value::Crd(a, _), Value::Crd(b, _)) => {
-                        stack.push(Value::Per(a.dist(b), PerView::Angle))
-                    }
-                    _ => return None,
-                },
-                "latlong" => match (stack.pop()?, stack.pop()?) {
-                    (Value::Per(long, _), Value::Per(lat, _)) => {
-                        rf.lat = lat;
-                        rf.long = long;
-                    }
-                    _ => return None,
-                },
-                "rise" => match stack.pop()? {
-                    Value::Crd(c, _) => stack.push(Value::Per(
-                        c.riseset(rf.date, rf.lat, rf.long).unwrap().0,
-                        PerView::Time,
-                    )),
-                    _ => return None,
-                },
-                "set" => match stack.pop()? {
-                    Value::Crd(c, _) => stack.push(Value::Per(
-                        c.riseset(rf.date, rf.lat, rf.long).unwrap().1,
-                        PerView::Time,
-                    )),
-                    _ => return None,
-                },
-                "now" => stack.push(Value::Date(time::Date::now())),
-                "isdate" => match stack.pop()? {
-                    Value::Date(d) => rf.date = d,
-                    _ => return None,
-                },
-                "to_horiz" => match stack.pop()? {
-                    Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Horizontal(*rf))),
-                    _ => return None,
-                },
-                "to_equatorial" => match stack.pop()? {
-                    Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Equatorial)),
-                    _ => return None,
-                },
-                _ => return None,
-            };
-
-            Some(())
-        }
-
-        pub fn word(
-            s: &str,
-            stack: &mut Vec<Value>,
-            catalog: &HashMap<&str, CelObj>,
-            rf: &mut RefFrame,
-        ) -> Option<()> {
-            if let Some(c) = get_catobj(s, catalog) {
-                stack.push(Value::Obj(c));
-                Some(())
-            } else if let Some(()) = function(s, stack, rf) {
-                Some(())
-            } else {
-                stack.push(primative(s)?);
-                Some(())
-            }
-        }
-
-        #[cfg(test)]
-        mod tests {
-            use super::*;
-            #[test]
-            fn test_rdunix() {
-                assert_eq!(
-                    primative("@86400").unwrap(),
-                    Value::Date(time::Date::from_calendar(
-                        1970,
-                        1,
-                        2,
-                        time::Period::default()
-                    ))
-                );
-                assert_eq!(
-                    primative("86400u").unwrap(),
-                    Value::Date(time::Date::from_calendar(
-                        1970,
-                        1,
-                        2,
-                        time::Period::default()
-                    ))
-                );
-                assert_eq!(
-                    primative("86400jd").unwrap(),
-                    Value::Date(time::Date::from_julian(86400.0))
-                );
-                assert_eq!(primative("@86400U"), None);
-
-                assert_eq!(
-                    primative("120.5d").unwrap(),
-                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-                );
-                assert_eq!(
-                    primative("120.5deg").unwrap(),
-                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-                );
-                assert_eq!(
-                    primative("120.5d").unwrap(),
-                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-                );
-                assert_eq!(
-                    primative("120.5°").unwrap(),
-                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-                );
-                assert_eq!(
-                    primative("120.5°").unwrap(),
-                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-                );
-                assert_eq!(
-                    primative("2000-12-25").unwrap(),
-                    Value::Date(time::Date::from_calendar(
-                        2000,
-                        12,
-                        25,
-                        time::Period::default()
-                    ))
-                );
-            }
-        }
-    }
-
     /// An object and a CSV list of properties. The return stack is these properties.
     pub fn basic(
         words: &[String],
@@ -378,22 +192,6 @@ mod query {
                     prop.to_owned(),
                 )
             })
-            .collect())
-    }
-
-    pub fn rpn(
-        words: &[String],
-        rf: RefFrame,
-        c: &HashMap<&str, CelObj>,
-    ) -> Result<Vec<(Value, String)>, &'static str> {
-        let mut tmprf = rf; // For ephemeris, this value is not safe to variate between queries
-        let mut stack: Vec<Value> = Vec::new();
-        words
-            .iter()
-            .for_each(|x| rpn_parse::word(x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query"));
-        Ok(stack
-            .iter()
-            .map(|v| (v.clone(), "Stack Object".to_owned()))
             .collect())
     }
 }
@@ -414,37 +212,41 @@ fn main() {
             ("pluto", CelObj::Planet(sol::PLUTO)),
         ])
     }
-    fn step_date(d: time::Date, s: Step) -> time::Date {
-        let (y, mon, d, t) = d.calendar();
-        time::Date::from_calendar(y + s.0 as i64, mon + s.1 as u8, d + s.2 as u8, t)
-    }
-
-    use clap::{arg, command, Arg};
+    use clap::{arg, command};
     let matches = command!()
-        .arg(arg!(-l --lat [Angle] "Set the latitude").value_parser(parse::angle))
-        .arg(arg!(-L --long [Angle] "Set the longitude").value_parser(parse::angle))
-        .arg(arg!(-d --date [Date] "Set the date").value_parser(parse::date))
+    	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
+        .arg(
+            arg!(-l --lat [Angle] "Set the latitude")
+                .value_parser(parse::angle)
+                .default_value("0d"),
+        )
+        .arg(
+            arg!(-L --long [Angle] "Set the longitude")
+                .value_parser(parse::angle)
+                .default_value("0d"),
+        )
+        .arg(
+            arg!(-d --date [Date] "Set the date")
+                .value_parser(parse::date)
+                .default_value("now"),
+        )
         .arg(
             arg!(-T --format [Format] "Output Format")
                 .value_parser(["term", "csv", "json"])
                 .default_value("term"),
         )
-        .arg(arg!(-r --rpn "Arguments are parsed as RPN words").action(clap::ArgAction::SetTrue))
-        .arg(arg!(-E --ephem [StartStepEnd] "Generates Table").value_parser(parse::ephemq))
-        .arg(Arg::new("com").hide(true).action(clap::ArgAction::Append))
+        .arg(arg!(-E --ephem ["Start,Step,End"] "Generates Table").value_parser(parse::ephemq))
+        .arg(arg!([object] "Celestial Object").required(true))
+        .arg(arg!([properties] "CSV property list").required(true))
         .get_matches();
 
     let catalog = read_catalog();
     let mut myrf: RefFrame = RefFrame {
-        lat: *matches.get_one("lat").unwrap_or(&time::Period::default()),
-        long: *matches.get_one("long").unwrap_or(&time::Period::default()),
-        date: *matches.get_one("date").unwrap_or(&time::Date::now()),
+        lat: *matches.get_one("lat").unwrap(),
+        long: *matches.get_one("long").unwrap(),
+        date: *matches.get_one("date").unwrap(),
     };
-    let querier = if !matches.get_flag("rpn") {
-    	query::basic
-    } else {
-    	query::rpn
-    };
+    let querier = query::basic;
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
         "term" => output::TERM,
         "csv" => output::CSV,
@@ -452,25 +254,26 @@ fn main() {
         _ => todo!(),
     };
 
-    let words: Vec<_> = matches
-        .get_many::<String>("com")
-        .unwrap_or_else(|| panic!("Needs additional arguments"))
-        .map(|x| x.to_lowercase())
-        .collect();
+    let words: Vec<_> = vec![
+        matches.get_one::<String>("object").unwrap().clone(),
+        matches.get_one::<String>("properties").unwrap().clone(),
+    ];
 
     let q = |myrf: RefFrame| {
-         querier(&words, myrf, &catalog) .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+        querier(&words, myrf, &catalog).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
     };
 
     (formatter.start)();
 
-    if let Some((start, step, end)) = matches.get_one::<(time::Date, Step, time::Date)>("ephem") {
+    if let Some((start, step, end)) =
+        matches.get_one::<(time::Date, time::TimeStep, time::Date)>("ephem")
+    {
         myrf.date = *start;
         let first = q(myrf);
         (formatter.propheader)(first.clone(), myrf.date);
         (formatter.ephemq)(first.clone(), myrf.date);
         while myrf.date.julian() < end.julian() {
-            myrf.date = step_date(myrf.date, *step);
+            myrf.date = myrf.date + step.clone();
             (formatter.ephemq)(q(myrf), myrf.date);
         }
     } else {

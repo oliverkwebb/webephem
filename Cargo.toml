@@ -1,10 +1,15 @@
 [package]
 name = "deskephem"
-description = "CLI astronomy tool"
 version = "0.1.1"
+description = "CLI Astronomy Calculator and Ephemeris Generator"
+authors = ["Oliver Webb <oliverwebb8192@gmail.com>"]
+license = "0BSD"
 edition = "2021"
+readme = "README.md"
+keywords = ["astronomy", "command line"]
+repository = "https://github.com/oliverkwebb/deskephem"
 
 [dependencies]
 chrono = "0.4.40"
 clap = { version = "4.5.34", features = ["cargo"] }
-pracstro = "0.4.1"
+pracstro = "0.4.3"

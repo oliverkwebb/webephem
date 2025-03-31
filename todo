@@ -1,11 +1,19 @@
-- [ ] pre-1582 ephemeris goes into an infinite loop
-- [ ] latitude/longitude assumed to be 0
+Bugs/Internal:
+- [*] pre-1582 ephemeris goes into an infinite loop
 - [*] more helpful error messages
 - [*] split code up into multiple files
+- [*] -l -L fail on uppercase N/S/E/W
 - [ ] Southern Phase emojis
-- [ ] remove copy trait for ref frame
-- [ ] add stars (star catalog data where?)
-- [ ] add minor planets and other solar objects
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
-- [ ] -l -L fail on uppercase N/S/E/W
+- [ ] merge json printing and normal printing into one trait with alternate
+Features:
+- [*] Help text
+- [ ] Full readme with examples
+- [ ] Merge -l and -L into -l lat,long
+- [ ] latlong accept no suffix numbers
+- [ ] Make lat/long an option instead of default 0
+- [ ] add minor planets and other solar objects
+- [ ] add stars (star catalog data where?)
+- [ ] relative ephemeris start/end dates (i.e. -1w,1d,+1w)
+- [ ] (?) JPL Ephemeris Format Output

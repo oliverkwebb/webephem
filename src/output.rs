@@ -18,7 +18,7 @@ pub struct Driver {
 pub fn nop() {}
 pub fn nop_fa(_: Vec<(Value, String)>, _: time::Date) {}
 
-fn term_proph(rs: Vec<(Value, String)>, d: time::Date) {
+fn term_proph(rs: Vec<(Value, String)>, _: time::Date) {
     print!("{:^22}", "date");
     rs.iter().for_each(|x| print!("{:^29}", x.1));
     print!("\n{:=<1$}\n", "", 29 * rs.len() + 22);
@@ -87,12 +87,12 @@ fn json_init() {
 }
 fn json_q(rs: Vec<(Value, String)>) {
     print!("{{");
-    rs.iter().for_each(|(x, y)| print!("\"{}\": {:b},", y, x));
+    rs.iter().for_each(|(x, y)| print!("\"{}\": {:#},", y, x));
     print!("\"isq\": true }},");
 }
 fn json_eq(rs: Vec<(Value, String)>, d: time::Date) {
     print!("{{ \"timestamp\": {},", d.unix());
-    rs.iter().for_each(|(x, y)| print!("\"{}\": {:b},", y, x));
+    rs.iter().for_each(|(x, y)| print!("\"{}\": {:#},", y, x));
     print!("\"isq\": true }},");
 }
 fn json_footer() {
