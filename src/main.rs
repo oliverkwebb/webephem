@@ -7,8 +7,6 @@ pub mod value;
 type Step = (f64, f64, f64);
 
 mod parse {
-    use crate::query::property_of;
-    use crate::value::*;
     use crate::Step;
     use chrono::prelude::*;
     use pracstro::time;
@@ -18,7 +16,8 @@ mod parse {
     }
 
     /// A step in time, returns (years, months, days, hours, minutes, seconds)
-    pub fn step(s: &str) -> Result<Step, &'static str> {
+    pub fn step(sm: &str) -> Result<Step, &'static str> {
+    	let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if let Some(n) = suffix_num(s, "y") {
             Ok((n, 0.0, 0.0))
         } else if let Some(n) = suffix_num(s, "mon") {
@@ -41,8 +40,11 @@ mod parse {
     }
 
     /// The inbuilt RFC3339/ISO6901 date parser in chrono does not support subsets of the formatting.
-    pub fn date(s: &str) -> Result<time::Date, &'static str> {
-        if s.starts_with("@") {
+    pub fn date(sm: &str) -> Result<time::Date, &'static str> {
+    	let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
+        if s == "now" {
+            Ok(time::Date::now())
+        } else if s.starts_with("@") {
             Ok(time::Date::from_unix(
                 s.strip_prefix("@")
                     .ok_or("")?
@@ -72,197 +74,38 @@ mod parse {
     }
 
     pub fn angle(s: &str) -> Result<time::Period, &'static str> {
-        if let Some(n) = suffix_num(s, "e") {
+    	let sl = &s.to_lowercase(); // This can usually be guaranteed, except in argument parsing
+        if let Some(n) = suffix_num(sl, "e") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "w") {
+        } else if let Some(n) = suffix_num(sl, "w") {
             Ok(time::Period::from_degrees(-n))
-        } else if let Some(n) = suffix_num(s, "n") {
+        } else if let Some(n) = suffix_num(sl, "n") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "s") {
+        } else if let Some(n) = suffix_num(sl, "s") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "d") {
+        } else if let Some(n) = suffix_num(sl, "d") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "deg") {
+        } else if let Some(n) = suffix_num(sl, "deg") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "°") {
+        } else if let Some(n) = suffix_num(sl, "°") {
             Ok(time::Period::from_degrees(n))
-        } else if let Some(n) = suffix_num(s, "rad") {
+        } else if let Some(n) = suffix_num(sl, "rad") {
             Ok(time::Period::from_radians(n))
         } else {
             Err("Invalid Angle")
         }
     }
-
-    /// Reads anything that at its core is a number,
-    /// These numbers are floating point and can have prefixes or suffixes
-    ///
-    /// Prefixes:
-    ///
-    /// | Prefix | Meaning       |
-    /// |--------|---------------|
-    /// | `@`    | Unix Date     |
-    ///
-    /// Suffixes:
-    ///
-    /// | Suffix | Meaning       |
-    /// |--------|---------------|
-    /// | `U`    | Unix Date     |
-    /// | `JD`   | Julian Day    |
-    /// | `J`    | Julian Day    |
-    /// | `D`    | Degrees       |
-    /// | `d`    | Degrees       |
-    /// | `deg`  | Degrees       |
-    /// | `°`    | Degrees       |
-    /// | `rad`  | Radians       |
-    /// | `H`    | Decimal Hours |
-    /// | `h`    | Decimal Hours |
-    /// | `rad`  | Radians       |
-    ///
-    pub fn primative(s: &str) -> Option<Value> {
-        if let Ok(d) = date(s) {
-            Some(Value::Date(d))
-        } else if let Ok(d) = angle(s) {
-            Some(Value::Per(d, PerView::Angle))
-        }
-        // Time
-        else if s.ends_with("h") {
-            Some(Value::Per(
-                time::Period::from_decimal((s.strip_suffix("H"))?.parse().ok()?),
-                PerView::Time,
-            ))
-        } else {
-            Some(Value::Num(s.parse().ok()?))
-        }
-    }
-
-    pub fn function(s: &str, stack: &mut Vec<Value>, rf: &mut RefFrame) -> Option<()> {
-        if let Value::Obj(c) = &stack[stack.len() - 1] {
-            if let Ok(v) = property_of(c, s, rf) {
-                stack.push(v);
-                return Some(());
-            }
-        }
-        match s {
-            ".s" => stack
-                .iter()
-                .enumerate()
-                .rev()
-                .for_each(|(n, x)| println!("#{:02}: {}", n, x)),
-            "." => println!("{}", stack.pop()?),
-            "between" => match (stack.pop()?, stack.pop()?) {
-                (Value::Crd(a, _), Value::Crd(b, _)) => {
-                    stack.push(Value::Per(a.dist(b), PerView::Angle))
-                }
-                _ => return None,
-            },
-            "latlong" => match (stack.pop()?, stack.pop()?) {
-                (Value::Per(long, _), Value::Per(lat, _)) => {
-                    rf.lat = lat;
-                    rf.long = long;
-                }
-                _ => return None,
-            },
-            "rise" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Per(
-                    c.riseset(rf.date, rf.lat, rf.long).unwrap().0,
-                    PerView::Time,
-                )),
-                _ => return None,
-            },
-            "set" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Per(
-                    c.riseset(rf.date, rf.lat, rf.long).unwrap().1,
-                    PerView::Time,
-                )),
-                _ => return None,
-            },
-            "now" => stack.push(Value::Date(time::Date::now())),
-            "isdate" => match stack.pop()? {
-                Value::Date(d) => rf.date = d,
-                _ => return None,
-            },
-            "to_horiz" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Horizontal(*rf))),
-                _ => return None,
-            },
-            "to_equatorial" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Equatorial)),
-                _ => return None,
-            },
-            _ => return None,
-        };
-
-        Some(())
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        #[test]
-        fn test_rdunix() {
-            assert_eq!(
-                primative("@86400").unwrap(),
-                Value::Date(time::Date::from_calendar(
-                    1970,
-                    1,
-                    2,
-                    time::Period::default()
-                ))
-            );
-            assert_eq!(
-                primative("86400u").unwrap(),
-                Value::Date(time::Date::from_calendar(
-                    1970,
-                    1,
-                    2,
-                    time::Period::default()
-                ))
-            );
-            assert_eq!(
-                primative("86400jd").unwrap(),
-                Value::Date(time::Date::from_julian(86400.0))
-            );
-            assert_eq!(primative("@86400U"), None);
-
-            assert_eq!(
-                primative("120.5d").unwrap(),
-                Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-            );
-            assert_eq!(
-                primative("120.5deg").unwrap(),
-                Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-            );
-            assert_eq!(
-                primative("120.5d").unwrap(),
-                Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-            );
-            assert_eq!(
-                primative("120.5°").unwrap(),
-                Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-            );
-            assert_eq!(
-                primative("120.5°").unwrap(),
-                Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-            );
-            assert_eq!(
-                primative("2000-12-25").unwrap(),
-                Value::Date(time::Date::from_calendar(
-                    2000,
-                    12,
-                    25,
-                    time::Period::default()
-                ))
-            );
-        }
-    }
 }
 
-/// A query is anything that produces a return stack dependant on reference frame and catalog.
+/// A query is anything that produces a return stack dependent on reference frame and catalog.
 mod query {
-    use crate::parse;
     use crate::value::*;
     use pracstro::{moon, sol};
     use std::collections::HashMap;
+
+    fn get_catobj(s: &str, catalog: &HashMap<&str, CelObj>) -> Option<CelObj> {
+        Some(catalog.get(s)?.clone())
+    }
 
     pub fn property_of(obj: &CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static str> {
         match (q, obj.clone()) {
@@ -328,8 +171,194 @@ mod query {
             _ => Err("No Property"),
         }
     }
-    fn get_catobj(s: &str, catalog: &HashMap<&str, CelObj>) -> Option<CelObj> {
-        Some(catalog.get(s)?.clone())
+
+    mod rpn_parse {
+        use crate::parse;
+        use super::get_catobj;
+    	use std::collections::HashMap;
+        use crate::query::property_of;
+        use crate::value::*;
+        use pracstro::time;
+
+        /// Reads anything that at its core is a number,
+        /// These numbers are floating point and can have prefixes or suffixes
+        ///
+        /// Prefixes:
+        ///
+        /// | Prefix | Meaning       |
+        /// |--------|---------------|
+        /// | `@`    | Unix Date     |
+        ///
+        /// Suffixes:
+        ///
+        /// | Suffix | Meaning       |
+        /// |--------|---------------|
+        /// | `U`    | Unix Date     |
+        /// | `JD`   | Julian Day    |
+        /// | `J`    | Julian Day    |
+        /// | `D`    | Degrees       |
+        /// | `d`    | Degrees       |
+        /// | `deg`  | Degrees       |
+        /// | `°`    | Degrees       |
+        /// | `rad`  | Radians       |
+        /// | `H`    | Decimal Hours |
+        /// | `h`    | Decimal Hours |
+        /// | `rad`  | Radians       |
+        ///
+        fn primative(s: &str) -> Option<Value> {
+            if let Ok(d) = parse::date(s) {
+                Some(Value::Date(d))
+            } else if let Ok(d) = parse::angle(s) {
+                Some(Value::Per(d, PerView::Angle))
+            }
+            // Time
+            else if s.ends_with("h") {
+                Some(Value::Per(
+                    time::Period::from_decimal((s.strip_suffix("H"))?.parse().ok()?),
+                    PerView::Time,
+                ))
+            } else {
+                Some(Value::Num(s.parse().ok()?))
+            }
+        }
+
+        fn function(s: &str, stack: &mut Vec<Value>, rf: &mut RefFrame) -> Option<()> {
+            if let Value::Obj(c) = &stack[stack.len() - 1] {
+                if let Ok(v) = property_of(c, s, rf) {
+                    stack.push(v);
+                    return Some(());
+                }
+            }
+            match s {
+                ".s" => stack
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .for_each(|(n, x)| println!("#{:02}: {}", n, x)),
+                "." => println!("{}", stack.pop()?),
+                "between" => match (stack.pop()?, stack.pop()?) {
+                    (Value::Crd(a, _), Value::Crd(b, _)) => {
+                        stack.push(Value::Per(a.dist(b), PerView::Angle))
+                    }
+                    _ => return None,
+                },
+                "latlong" => match (stack.pop()?, stack.pop()?) {
+                    (Value::Per(long, _), Value::Per(lat, _)) => {
+                        rf.lat = lat;
+                        rf.long = long;
+                    }
+                    _ => return None,
+                },
+                "rise" => match stack.pop()? {
+                    Value::Crd(c, _) => stack.push(Value::Per(
+                        c.riseset(rf.date, rf.lat, rf.long).unwrap().0,
+                        PerView::Time,
+                    )),
+                    _ => return None,
+                },
+                "set" => match stack.pop()? {
+                    Value::Crd(c, _) => stack.push(Value::Per(
+                        c.riseset(rf.date, rf.lat, rf.long).unwrap().1,
+                        PerView::Time,
+                    )),
+                    _ => return None,
+                },
+                "now" => stack.push(Value::Date(time::Date::now())),
+                "isdate" => match stack.pop()? {
+                    Value::Date(d) => rf.date = d,
+                    _ => return None,
+                },
+                "to_horiz" => match stack.pop()? {
+                    Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Horizontal(*rf))),
+                    _ => return None,
+                },
+                "to_equatorial" => match stack.pop()? {
+                    Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Equatorial)),
+                    _ => return None,
+                },
+                _ => return None,
+            };
+
+            Some(())
+        }
+
+        pub fn word(
+            s: &str,
+            stack: &mut Vec<Value>,
+            catalog: &HashMap<&str, CelObj>,
+            rf: &mut RefFrame,
+        ) -> Option<()> {
+            if let Some(c) = get_catobj(s, catalog) {
+                stack.push(Value::Obj(c));
+                Some(())
+            } else if let Some(()) = function(s, stack, rf) {
+                Some(())
+            } else {
+                stack.push(primative(s)?);
+                Some(())
+            }
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use super::*;
+            #[test]
+            fn test_rdunix() {
+                assert_eq!(
+                    primative("@86400").unwrap(),
+                    Value::Date(time::Date::from_calendar(
+                        1970,
+                        1,
+                        2,
+                        time::Period::default()
+                    ))
+                );
+                assert_eq!(
+                    primative("86400u").unwrap(),
+                    Value::Date(time::Date::from_calendar(
+                        1970,
+                        1,
+                        2,
+                        time::Period::default()
+                    ))
+                );
+                assert_eq!(
+                    primative("86400jd").unwrap(),
+                    Value::Date(time::Date::from_julian(86400.0))
+                );
+                assert_eq!(primative("@86400U"), None);
+
+                assert_eq!(
+                    primative("120.5d").unwrap(),
+                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+                );
+                assert_eq!(
+                    primative("120.5deg").unwrap(),
+                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+                );
+                assert_eq!(
+                    primative("120.5d").unwrap(),
+                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+                );
+                assert_eq!(
+                    primative("120.5°").unwrap(),
+                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+                );
+                assert_eq!(
+                    primative("120.5°").unwrap(),
+                    Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+                );
+                assert_eq!(
+                    primative("2000-12-25").unwrap(),
+                    Value::Date(time::Date::from_calendar(
+                        2000,
+                        12,
+                        25,
+                        time::Period::default()
+                    ))
+                );
+            }
+        }
     }
 
     /// An object and a CSV list of properties. The return stack is these properties.
@@ -357,27 +386,11 @@ mod query {
         rf: RefFrame,
         c: &HashMap<&str, CelObj>,
     ) -> Result<Vec<(Value, String)>, &'static str> {
-        pub fn word(
-            s: &str,
-            stack: &mut Vec<Value>,
-            catalog: &HashMap<&str, CelObj>,
-            rf: &mut RefFrame,
-        ) -> Option<()> {
-            if let Some(c) = get_catobj(s, catalog) {
-                stack.push(Value::Obj(c));
-                Some(())
-            } else if let Some(()) = parse::function(s, stack, rf) {
-                Some(())
-            } else {
-                stack.push(parse::primative(s)?);
-                Some(())
-            }
-        }
         let mut tmprf = rf; // For ephemeris, this value is not safe to variate between queries
         let mut stack: Vec<Value> = Vec::new();
         words
             .iter()
-            .for_each(|x| word(x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query"));
+            .for_each(|x| rpn_parse::word(x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query"));
         Ok(stack
             .iter()
             .map(|v| (v.clone(), "Stack Object".to_owned()))
@@ -427,6 +440,11 @@ fn main() {
         long: *matches.get_one("long").unwrap_or(&time::Period::default()),
         date: *matches.get_one("date").unwrap_or(&time::Date::now()),
     };
+    let querier = if !matches.get_flag("rpn") {
+    	query::basic
+    } else {
+    	query::rpn
+    };
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
         "term" => output::TERM,
         "csv" => output::CSV,
@@ -441,13 +459,7 @@ fn main() {
         .collect();
 
     let q = |myrf: RefFrame| {
-        if !matches.get_flag("rpn") {
-            query::basic(&words, myrf, &catalog)
-                .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
-        } else {
-            query::rpn(&words, myrf, &catalog)
-                .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
-        }
+         querier(&words, myrf, &catalog) .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
     };
 
     (formatter.start)();

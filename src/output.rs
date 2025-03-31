@@ -1,6 +1,7 @@
 use crate::value::*;
 use pracstro::time;
 
+/// A set of functions that handle the formatting of queries
 pub struct Driver {
     /// Starting information
     pub start: fn() -> (),
@@ -17,11 +18,9 @@ pub struct Driver {
 pub fn nop() {}
 pub fn nop_fa(_: Vec<(Value, String)>, _: time::Date) {}
 
-fn term_proph(rs: Vec<(Value, String)>, _d: time::Date) {
+fn term_proph(rs: Vec<(Value, String)>, d: time::Date) {
     print!("{:^22}", "date");
-    for x in rs.iter().map(|x| x.1.clone()) {
-        print!("{:^29}", x);
-    }
+    rs.iter().for_each(|x| print!("{:^29}", x.1));
     print!("\n{:=<1$}\n", "", 29 * rs.len() + 22);
 }
 fn term_q(rs: Vec<(Value, String)>) {
@@ -35,9 +34,7 @@ fn term_q(rs: Vec<(Value, String)>) {
 }
 fn term_eq(rs: Vec<(Value, String)>, d: time::Date) {
     print!("{:^22}", Value::Date(d).to_string());
-    for x in rs.iter().map(|x| x.0.to_string()) {
-        print!("{:<29}", x);
-    }
+    rs.iter().for_each(|x| print!("{:<29}", x.0.to_string()));
     println!();
 }
 pub const TERM: Driver = Driver {
@@ -58,7 +55,7 @@ fn csv_proph(rs: Vec<(Value, String)>, _d: time::Date) {
     )
 }
 fn csv_q(rs: Vec<(Value, String)>) {
-    print!(
+    println!(
         "{}",
         rs.iter()
             .map(|x| x.0.to_string())
@@ -90,12 +87,12 @@ fn json_init() {
 }
 fn json_q(rs: Vec<(Value, String)>) {
     print!("{{");
-    rs.iter().for_each(|(x, y)| print!("\"{}\": \"{}\",", y, x));
+    rs.iter().for_each(|(x, y)| print!("\"{}\": {:b},", y, x));
     print!("\"isq\": true }},");
 }
 fn json_eq(rs: Vec<(Value, String)>, d: time::Date) {
     print!("{{ \"timestamp\": {},", d.unix());
-    rs.iter().for_each(|(x, y)| print!("\"{}\": \"{}\",", y, x));
+    rs.iter().for_each(|(x, y)| print!("\"{}\": {:b},", y, x));
     print!("\"isq\": true }},");
 }
 fn json_footer() {

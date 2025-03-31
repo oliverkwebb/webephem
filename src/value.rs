@@ -78,12 +78,12 @@ impl fmt::Display for Value {
             }
         }
 
-        use chrono::DateTime;
+        use chrono::prelude::*;;
         match self {
             Value::Date(d) => write!(
                 f,
                 "{}",
-                DateTime::from_timestamp(d.unix() as i64, 0)
+                DateTime::<Local>::from_timestamp(d.unix() as i64, 0)
                     .expect("Invalid Date")
                     .format("%Y-%m-%dT%T")
             ),
@@ -147,6 +147,103 @@ impl fmt::Display for Value {
             }
             Value::Num(n) => write!(f, "{:0.2}", n),
             Value::Obj(_p) => write!(f, "Celestial Object"),
+        }
+    }
+}
+/// JSON friendly numbers
+impl fmt::Binary for Value {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
+        const SEMOJI: [&str; 8] = ["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒"];
+        const PNAMES: [&str; 8] = [
+            "New",
+            "Waxing Crescent",
+            "First Quarter",
+            "Waxing Gibbous",
+            "Full",
+            "Waning Gibbous",
+            "Last Quarter",
+            "Waning Crescent",
+        ];
+
+        fn phaseidx(ilumfrac: f64, ang: time::Period) -> usize {
+            match (ilumfrac, ang.degrees() > 90.0) {
+                (0.00..0.04, _) => 0,
+                (0.96..1.00, _) => 4,
+                (0.46..0.54, true) => 6,
+                (0.46..0.54, false) => 2,
+                (0.54..0.96, true) => 5,
+                (0.54..0.96, false) => 3,
+                (_, true) => 7,
+                (_, false) => 1,
+            }
+        }
+
+        match self {
+            Value::Date(d) => write!(f, "{}", d.unix()),
+            Value::Per(p, PerView::Angle) => {
+                write!(f, "{:.5}", p.degrees())
+            }
+            Value::Per(p, PerView::Latitude) => {
+                write!(f, "{:.5}", p.to_latitude().degrees())
+            }
+            Value::Per(p, PerView::Time) => {
+                let (h, m, s) = p.clock();
+                write!(f, "\"{:02}h{:02}m{:02}s\"", h, m, s.trunc())
+            }
+            Value::Dist(d) => write!(f, "{} AU", d),
+            Value::Crd(c, CrdView::Equatorial) => {
+                let d = c.equatorial();
+                write!(
+                    f,
+                    "[{:b}, {:b}]",
+                    Value::Per(d.0, PerView::Time),
+                    Value::Per(d.1, PerView::Latitude)
+                )
+            }
+            Value::Crd(c, CrdView::Horizontal(rf)) => {
+                let d = c.horizon(rf.date, rf.date.time(), rf.lat, rf.long);
+                write!(
+                    f,
+                    "[{:b}, {:b}]",
+                    Value::Per(d.0, PerView::Angle),
+                    Value::Per(d.1, PerView::Latitude)
+                )
+            }
+            Value::Crd(c, CrdView::Ecliptic(d)) => {
+                let d = c.ecliptic(*d);
+                write!(
+                    f,
+                    "[{:b}, {:b}]",
+                    Value::Per(d.0, PerView::Angle),
+                    Value::Per(d.1, PerView::Latitude)
+                )
+            }
+            Value::Phase(pa, PhaseView::Default) => {
+                let ilf = (1.0 - pa.cos()) / 2.0;
+                let pi = phaseidx(ilf, *pa);
+                write!(
+                    f,
+                    "\"{} {} ({:2.1}%)\"",
+                    EMOJIS[pi],
+                    PNAMES[pi],
+                    ilf * 100.0
+                )
+            }
+            Value::Phase(pa, PhaseView::Nemoji) => {
+                write!(f, "\"{}\"", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
+            Value::Phase(pa, PhaseView::Semoji) => {
+                write!(f, "\"{}\"", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
+            Value::Phase(pa, PhaseView::Illumfrac) => {
+                write!(f, "{:2.1}", 100.0 * (1.0 - pa.cos()) / 2.0)
+            }
+            Value::Phase(pa, PhaseView::PhaseName) => {
+                write!(f, "\"{}\"", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
+            Value::Num(n) => write!(f, "{:0.2}", n),
+            Value::Obj(_p) => write!(f, "\"Celestial Object\""),
         }
     }
 }
