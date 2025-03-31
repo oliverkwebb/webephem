@@ -1,15 +1,65 @@
 use pracstro::time;
+use std::fmt;
 use value::*;
 
 pub mod output;
 pub mod value;
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Property {
+    Equatorial,
+    Horizontal,
+    Ecliptic,
+    Distance,
+    Magnitude,
+    PhaseDefault,
+    PhaseEmoji,
+    AngDia,
+    IllumFrac,
+}
+impl fmt::Display for Property {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Property::Equatorial => "Coordinates (RA/De)",
+                Property::Horizontal => "Coordinates (Azi/Alt)",
+                Property::Ecliptic => "Coordinates (Ecliptic)",
+                Property::Distance => "Distance (AU)",
+                Property::Magnitude => "Magnitude",
+                Property::PhaseDefault => "Phase",
+                Property::PhaseEmoji => "Phase Emoji",
+                Property::IllumFrac => "Illuminated Frac.",
+                Property::AngDia => "Angular Diameter",
+            }
+        )
+    }
+}
+
 mod parse {
+    use crate::Property;
     use chrono::prelude::*;
     use pracstro::time;
 
     fn suffix_num(s: &str, j: &str) -> Option<f64> {
         s.strip_suffix(j)?.parse::<f64>().ok()
+    }
+
+    fn property(sm: &str) -> Result<Property, &'static str> {
+        let s = &sm.to_lowercase();
+        match s.as_str() {
+            "equ" | "equa" | "equatorial" => Ok(Property::Equatorial),
+            "horiz" | "horizontal" => Ok(Property::Equatorial),
+            "ecl" | "ecliptic" => Ok(Property::Ecliptic),
+            "dist" | "distance" => Ok(Property::Distance),
+            "mag" | "magnitude" | "brightness" => Ok(Property::Magnitude),
+            "phase" => Ok(Property::PhaseDefault),
+            "phaseemoji" => Ok(Property::PhaseEmoji),
+            "angdia" => Ok(Property::AngDia),
+            "phaseprecent" | "illumfrac" => Ok(Property::IllumFrac),
+            _ => Err("Unknown Property"),
+        }
     }
 
     /// A step in time, returns (years, months, days, hours, minutes, seconds)
@@ -177,18 +227,19 @@ mod query {
 
     /// An object and a CSV list of properties. The return stack is these properties.
     pub fn basic(
-        words: &[String],
+        object: &String,
+        proplist: &[String],
         rf: RefFrame,
         catalog: &HashMap<&str, CelObj>,
     ) -> Result<Vec<(Value, String)>, &'static str> {
-        let obj = get_catobj(&words[0].clone(), catalog)
-            .unwrap_or_else(|| panic!("Object {} not in Catalog", &words[0]));
-        Ok(words[1]
-            .split(',')
+        let obj = get_catobj(&object.clone(), catalog)
+            .unwrap_or_else(|| panic!("Object {object} not in Catalog"));
+        Ok(proplist
+            .iter()
             .map(|prop| {
                 (
                     property_of(&obj, prop, &rf)
-                        .unwrap_or_else(|e| panic!("Error on property {}: {e}", prop)),
+                        .unwrap_or_else(|e| panic!("Error on property {prop}: {e}")),
                     prop.to_owned(),
                 )
             })
@@ -212,6 +263,8 @@ fn main() {
             ("pluto", CelObj::Planet(sol::PLUTO)),
         ])
     }
+    let catalog = read_catalog();
+
     use clap::{arg, command};
     let matches = command!()
     	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
@@ -237,10 +290,9 @@ fn main() {
         )
         .arg(arg!(-E --ephem ["Start,Step,End"] "Generates Table").value_parser(parse::ephemq))
         .arg(arg!([object] "Celestial Object").required(true))
-        .arg(arg!([properties] "CSV property list").required(true))
+        .arg(arg!([properties] ... "Properties").required(true))
         .get_matches();
 
-    let catalog = read_catalog();
     let mut myrf: RefFrame = RefFrame {
         lat: *matches.get_one("lat").unwrap(),
         long: *matches.get_one("long").unwrap(),
@@ -254,13 +306,16 @@ fn main() {
         _ => todo!(),
     };
 
-    let words: Vec<_> = vec![
-        matches.get_one::<String>("object").unwrap().clone(),
-        matches.get_one::<String>("properties").unwrap().clone(),
-    ];
+    let obj = matches.get_one::<String>("object").unwrap();
+    let propl: Vec<String> = matches
+        .get_many::<String>("properties")
+        .unwrap()
+        .map(|x| x.clone())
+        .collect();
 
     let q = |myrf: RefFrame| {
-        querier(&words, myrf, &catalog).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+        querier(&obj, &propl, myrf, &catalog)
+            .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
     };
 
     (formatter.start)();

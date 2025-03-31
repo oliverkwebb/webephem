@@ -85,7 +85,8 @@ impl fmt::Display for Value {
                     f,
                     "{}",
                     DateTime::<Local>::from(
-                        DateTime::from_timestamp(d.unix() as i64, 0).expect("Invalid Date")
+                        DateTime::from_timestamp(d.unix() as i64, 0)
+                            .expect("Failed to Format Date")
                     )
                     .format("%Y-%m-%dT%T")
                 ),
