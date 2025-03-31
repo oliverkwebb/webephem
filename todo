@@ -2,6 +2,7 @@
 - [ ] latitude/longitude assumed to be 0
 - [*] more helpful error messages
 - [*] split code up into multiple files
+- [ ] Southern Phase emojis
 - [ ] remove copy trait for ref frame
 - [ ] add stars (star catalog data where?)
 - [ ] add minor planets and other solar objects

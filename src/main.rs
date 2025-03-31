@@ -259,9 +259,9 @@ mod parse {
 
 /// A query is anything that produces a return stack dependant on reference frame and catalog.
 mod query {
-	use crate::parse;
-	use crate::value::*;
-	use pracstro::{sol, moon};
+    use crate::parse;
+    use crate::value::*;
+    use pracstro::{moon, sol};
     use std::collections::HashMap;
 
     pub fn property_of(obj: &CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static str> {
@@ -338,10 +338,17 @@ mod query {
         rf: RefFrame,
         catalog: &HashMap<&str, CelObj>,
     ) -> Result<Vec<(Value, String)>, &'static str> {
-        let obj = get_catobj(&words[0].clone(), catalog).unwrap_or_else(|| panic!("Object {} not in Catalog", &words[0]));
+        let obj = get_catobj(&words[0].clone(), catalog)
+            .unwrap_or_else(|| panic!("Object {} not in Catalog", &words[0]));
         Ok(words[1]
             .split(',')
-            .map(|prop| (property_of(&obj, prop, &rf).unwrap_or_else(|e| panic!("Error on property {}: {e}", prop)), prop.to_owned()))
+            .map(|prop| {
+                (
+                    property_of(&obj, prop, &rf)
+                        .unwrap_or_else(|e| panic!("Error on property {}: {e}", prop)),
+                    prop.to_owned(),
+                )
+            })
             .collect())
     }
 
@@ -380,7 +387,7 @@ mod query {
 
 fn main() {
     fn read_catalog() -> std::collections::HashMap<&'static str, CelObj> {
-    	use pracstro::sol;
+        use pracstro::sol;
         std::collections::HashMap::from([
             ("sun", CelObj::Sun),
             ("mercury", CelObj::Planet(sol::MERCURY)),
@@ -435,9 +442,11 @@ fn main() {
 
     let q = |myrf: RefFrame| {
         if !matches.get_flag("rpn") {
-            query::basic(&words, myrf, &catalog).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+            query::basic(&words, myrf, &catalog)
+                .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
         } else {
-            query::rpn(&words, myrf, &catalog).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+            query::rpn(&words, myrf, &catalog)
+                .unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
         }
     };
 
