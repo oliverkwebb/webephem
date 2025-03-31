@@ -26,7 +26,7 @@ enum CelObj {
     Sun,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 struct RefFrame {
     lat: time::Period,
     long: time::Period,
@@ -59,12 +59,12 @@ impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Date(d) => write!(
-                    f,
-                    "{}",
-                    DateTime::from_timestamp(d.unix() as i64, 0)
-                        .expect("Invalid Date")
-                        .format("%Y-%m-%dT%T")
-                ),
+                f,
+                "{}",
+                DateTime::from_timestamp(d.unix() as i64, 0)
+                    .expect("Invalid Date")
+                    .format("%Y-%m-%dT%T")
+            ),
             Value::Per(p, PerView::Angle) => {
                 let (d, m, s) = p.degminsec();
                 write!(f, "{:02}°{:02}′{:02.1}″", d, m, s)
@@ -111,10 +111,16 @@ impl fmt::Display for Value {
                 let pi = phaseidx(ilf, *pa);
                 write!(f, "{} {} ({:2.1}%)", EMOJIS[pi], PNAMES[pi], ilf * 100.0)
             }
-            Value::Phase(pa, PhaseView::Nemoji) => write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)]),
-            Value::Phase(pa, PhaseView::Semoji) => write!(f, "{}", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)]),
+            Value::Phase(pa, PhaseView::Nemoji) => {
+                write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
+            Value::Phase(pa, PhaseView::Semoji) => {
+                write!(f, "{}", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
             Value::Phase(pa, PhaseView::Illumfrac) => write!(f, "{:2.1}", (1.0 - pa.cos()) / 2.0),
-            Value::Phase(pa, PhaseView::PhaseName) => write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)]),
+            Value::Phase(pa, PhaseView::PhaseName) => {
+                write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+            }
             Value::Num(n) => write!(f, "{:0.2}", n),
             Value::Obj(_p) => write!(f, "Celestial Object"),
         }
@@ -148,46 +154,53 @@ fn phaseidx(ilumfrac: f64, ang: time::Period) -> usize {
 }
 
 fn step_date(d: time::Date, s: (f64, f64, f64, f64, f64, f64)) -> time::Date {
-	let (y,mon,d,t) = d.calendar();
-	let (h,min,sec) = t.clock();
-	time::Date::from_calendar(y + s.0 as i64, mon + s.1 as u8, d + s.2 as u8, time::Period::from_clock(h + s.3 as u8, min + s.4 as u8, sec + s.5))
+    let (y, mon, d, t) = d.calendar();
+    let (h, min, sec) = t.clock();
+    time::Date::from_calendar(
+        y + s.0 as i64,
+        mon + s.1 as u8,
+        d + s.2 as u8,
+        time::Period::from_clock(h + s.3 as u8, min + s.4 as u8, sec + s.5),
+    )
 }
 
 mod parse {
     use super::*;
 
     fn suffix_num(s: &str, j: &str) -> Option<f64> {
-    	Some(s.strip_suffix(j)?.parse::<f64>().ok()?)
+        Some(s.strip_suffix(j)?.parse::<f64>().ok()?)
     }
 
-	/// A step in time, returns (years, months, days, hours, minutes, seconds)
-	pub fn step(s: &str) -> Result<(f64, f64, f64, f64, f64, f64), &'static str> {
-		if let Some(n) = suffix_num(s, "y") {
-			Ok((n,0.0,0.0,0.0,0.0,0.0))
-		} else if let Some(n) = suffix_num(s, "m") {
-			Ok((0.0,n,0.0,0.0,0.0,0.0))
-		} else if let Some(n) = suffix_num(s, "w") {
-			Ok((0.0,0.0,n*7.0,0.0,0.0,0.0))
-		} else if let Some(n) = suffix_num(s, "d") {
-			Ok((0.0,0.0,n,0.0,0.0,0.0))
-		} else if let Some(n) = suffix_num(s, "h") {
-			Ok((0.0,0.0,0.0,n,0.0,0.0))
-		} else if let Some(n) = suffix_num(s, "m") {
-			Ok((0.0,0.0,0.0,0.0,n,0.0))
-		} else if let Some(n) = suffix_num(s, "s") {
-			Ok((0.0,0.0,0.0,0.0,0.0,n))
-		} else {
-			Err("Bad interval")
-		}
-	}
+    /// A step in time, returns (years, months, days, hours, minutes, seconds)
+    pub fn step(s: &str) -> Result<(f64, f64, f64, f64, f64, f64), &'static str> {
+        if let Some(n) = suffix_num(s, "y") {
+            Ok((n, 0.0, 0.0, 0.0, 0.0, 0.0))
+        } else if let Some(n) = suffix_num(s, "mon") {
+            Ok((0.0, n, 0.0, 0.0, 0.0, 0.0))
+        } else if let Some(n) = suffix_num(s, "w") {
+            Ok((0.0, 0.0, n * 7.0, 0.0, 0.0, 0.0))
+        } else if let Some(n) = suffix_num(s, "d") {
+            Ok((0.0, 0.0, n, 0.0, 0.0, 0.0))
+        } else if let Some(n) = suffix_num(s, "h") {
+            Ok((0.0, 0.0, 0.0, n, 0.0, 0.0))
+        } else if let Some(n) = suffix_num(s, "min") {
+            Ok((0.0, 0.0, 0.0, 0.0, n, 0.0))
+        } else if let Some(n) = suffix_num(s, "s") {
+            Ok((0.0, 0.0, 0.0, 0.0, 0.0, n))
+        } else {
+            Err("Bad interval")
+        }
+    }
 
-	pub fn ephemq(s: &str) -> Result<(time::Date, (f64, f64, f64, f64, f64, f64), time::Date), &'static str> {
-		let mut eq = s.split(',');
-		let start = eq.next().ok_or("Bad CSV")?;
-		let ste = eq.next().ok_or("Bad CSV")?;
-		let end = eq.next().ok_or("Bad CSV")?;
-		Ok((date(start)?, step(ste)?, date(end)?))
-	}
+    pub fn ephemq(
+        s: &str,
+    ) -> Result<(time::Date, (f64, f64, f64, f64, f64, f64), time::Date), &'static str> {
+        let mut eq = s.split(',');
+        let start = eq.next().ok_or("Bad CSV")?;
+        let ste = eq.next().ok_or("Bad CSV")?;
+        let end = eq.next().ok_or("Bad CSV")?;
+        Ok((date(start)?, step(ste)?, date(end)?))
+    }
 
     /// The inbuilt RFC3339/ISO6901 date parser in chrono does not support subsets of the formatting.
     pub fn date(s: &str) -> Result<time::Date, &'static str> {
@@ -363,7 +376,7 @@ mod parse {
 }
 
 fn get_catobj(s: &str, catalog: &HashMap<&str, CelObj>) -> Option<CelObj> {
-	Some(catalog.get(s)?.clone())
+    Some(catalog.get(s)?.clone())
 }
 
 fn property_of(obj: CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static str> {
@@ -433,25 +446,30 @@ fn property_of(obj: CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static st
 
 /// A query is anything that produces a return stack dependant on reference frame and catalog.
 mod query {
-	use super::*;
+    use super::*;
 
-	/// An object and a CSV list of properties. The return stack is these properties.
-	pub fn basic(words: Vec<String>, rf: &RefFrame, catalog: &HashMap<&str, CelObj>) -> Result<Vec<(Value, String)>, &'static str> {
-        let objs = &words[0];
-        let obj = get_catobj(&objs.clone(), &catalog).unwrap();
-		let mut rs: Vec<Value> = Vec::new();
-		for prop in words[1].split(',') {
-			rs.push(property_of(obj.clone(), prop, rf)?);
-		}
-        Ok(rs.iter().map(|v| (v.clone(), "".to_owned())).collect())
-	}
+    /// An object and a CSV list of properties. The return stack is these properties.
+    pub fn basic(
+        words: Vec<String>,
+        rf: RefFrame,
+        catalog: &HashMap<&str, CelObj>,
+    ) -> Result<Vec<(Value, String)>, &'static str> {
+        let obj = get_catobj(&words[0].clone(), &catalog).unwrap();
+        Ok(words[1].split(',').map(|prop| (property_of(obj.clone(), prop, &rf).unwrap(), prop.to_owned())).collect())
+    }
 
-	pub fn rpn(words: Vec<String>, rf: &RefFrame, c: &HashMap<&str, CelObj>) -> Result<Vec<(Value, String)>, &'static str> {
-		let mut tmprf = rf.clone(); // For ephemeris, this value is not safe to variate between queries
+    pub fn rpn(
+        words: Vec<String>,
+        rf: RefFrame,
+        c: &HashMap<&str, CelObj>,
+    ) -> Result<Vec<(Value, String)>, &'static str> {
+        let mut tmprf = rf.clone(); // For ephemeris, this value is not safe to variate between queries
         let mut stack: Vec<Value> = Vec::new();
-        words.iter().for_each(|x| parse::word(&x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query"));
-        Ok(stack.iter().map(|v| (v.clone(), "".to_owned())).collect())
-	}
+        words.iter().for_each(|x| {
+            parse::word(&x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query")
+        });
+        Ok(stack.iter().map(|v| (v.clone(), "Stack Object".to_owned())).collect())
+    }
 }
 
 fn read_catalog() -> HashMap<&'static str, CelObj> {
@@ -470,15 +488,63 @@ fn read_catalog() -> HashMap<&'static str, CelObj> {
 }
 
 mod format_retstack {
-	use super::*;
+    use super::*;
 
-	pub fn space_seperated(rs: Vec<(Value, String)>) -> String {
-		rs.iter().map(|x| x.0.to_string()).collect::<Vec<String>>().join(" ")
-	}
+    pub struct Driver {
+    	/// Header
+    	pub start: fn() -> (),
+    	pub propheader: fn(Vec<(Value, String)>, time::Date) -> String,
+    	pub query: fn(Vec<(Value, String)>) -> String,
+    	pub ephemq: fn(Vec<(Value, String)>, time::Date) -> String,
+    	pub footer: fn() -> (),
+    }
 
-	pub fn csv(rs: Vec<(Value, String)>) -> String {
-		rs.iter().map(|x| x.0.to_string()).collect::<Vec<String>>().join(",")
-	}
+    pub fn nop() {}
+    pub fn todo_nul() { todo!() }
+    pub fn nop_fa(_: Vec<(Value, String)>) -> String { "".to_owned() }
+    pub fn todo_fa(_: Vec<(Value, String)>, _: time::Date) -> String { todo!() }
+
+    pub const TERM: Driver = Driver {
+    	start: nop,
+    	propheader: todo_fa,
+    	query: space_seperated,
+    	ephemq: todo_fa,
+    	footer: nop,
+    };
+
+    pub const CSV: Driver = Driver {
+    	start: nop,
+    	propheader: csv_proph,
+    	query: csv_q,
+    	ephemq: csv_eq,
+    	footer: nop,
+    };
+
+    pub fn space_seperated(rs: Vec<(Value, String)>) -> String {
+        rs.iter()
+            .map(|x| x.0.to_string())
+            .collect::<Vec<String>>()
+            .join(" ")
+    }
+
+    pub fn csv_q(rs: Vec<(Value, String)>) -> String {
+        rs.iter()
+            .map(|x| x.0.to_string())
+            .collect::<Vec<String>>()
+            .join(",")
+    }
+
+    pub fn csv_eq(rs: Vec<(Value, String)>, d: time::Date) -> String {
+    	format!("{},{}\n", Value::Date(d),
+        rs.iter()
+            .map(|x| x.0.to_string())
+            .collect::<Vec<String>>()
+            .join(","))
+    }
+
+    pub fn csv_proph(rs: Vec<(Value, String)>, d: time::Date) -> String {
+    	format!("date,{}\n", rs.iter() .map(|x| x.1.clone()) .collect::<Vec<String>>() .join(","))
+    }
 }
 
 fn main() {
@@ -486,7 +552,11 @@ fn main() {
         .arg(arg!(-l --lat [Angle] "Set the latitude").value_parser(parse::angle))
         .arg(arg!(-L --long [Angle] "Set the longitude").value_parser(parse::angle))
         .arg(arg!(-d --date [Date] "Set the date").value_parser(parse::date))
-        .arg(arg!(-T --format [Format] "Output Format").value_parser(["space", "csv"]).default_value("space"))
+        .arg(
+            arg!(-T --format [Format] "Output Format")
+                .value_parser(["term", "csv"])
+                .default_value("term"),
+        )
         .arg(arg!(-r --rpn "Arguments are parsed as RPN words").action(clap::ArgAction::SetTrue))
         .arg(arg!(-E --ephem [StartStepEnd] "Generates Table").value_parser(parse::ephemq))
         .arg(Arg::new("com").hide(true).action(clap::ArgAction::Append))
@@ -499,22 +569,41 @@ fn main() {
         date: *matches.get_one("date").unwrap_or(&time::Date::now()),
     };
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
-    	"space" => format_retstack::space_seperated,
-    	"csv" => format_retstack::csv,
-    	_ => todo!(),
+        "term" => format_retstack::TERM,
+        "csv" => format_retstack::CSV,
+        _ => todo!(),
     };
 
-    let mut words = matches
+    let words: Vec<_> = matches
         .get_many::<String>("com")
         .unwrap()
-        .map(|x| x.to_lowercase()).collect();
+        .map(|x| x.to_lowercase())
+        .collect();
 
-    let q = || if !matches.get_flag("rpn") {
-        query::basic(words, &myrf, &catalog).unwrap()
+    let q = |myrf: RefFrame|
+        if !matches.get_flag("rpn") {
+            query::basic(words.clone(), myrf.clone(), &catalog).unwrap()
+        } else {
+            query::rpn(words.clone(), myrf.clone(), &catalog).unwrap()
+        }
+    ;
+
+    (formatter.start)();
+
+    if let Some((start, step, end)) = matches.get_one::<(time::Date, (f64, f64, f64, f64, f64, f64), time::Date)>("ephem") {
+    	myrf.date = *start;
+    	let first = q(myrf);
+    	print!("{}",(formatter.propheader)(first.clone(), myrf.date));
+    	print!("{}",(formatter.ephemq)(first.clone(), myrf.date));
+    	while myrf.date.julian() < end.julian() {
+    		myrf.date = step_date(myrf.date, *step);
+    		print!("{}",(formatter.ephemq)(q(myrf), myrf.date));
+    	}
     } else {
-        query::rpn(words, &myrf, &catalog).unwrap()
-    };
-    println!("{}", formatter(q()));
+    	println!("{}", (formatter.query)(q(myrf)));
+    }
+
+    (formatter.footer)();
 }
 
 #[cfg(test)]
