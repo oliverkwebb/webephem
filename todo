@@ -1,0 +1,9 @@
+- [ ] pre-1582 ephemeris goes into an infinite loop
+- [ ] latitude/longitude assumed to be 0
+- [ ] more helpful error messages
+- [ ] split code up into multiple files
+- [ ] remove copy trait for ref frame
+- [ ] add stars (star catalog data where?)
+- [ ] add minor planets and other solar objects
+- [ ] test cases where reasonable
+- [ ] documentation and comments where reasonable

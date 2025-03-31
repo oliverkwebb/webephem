@@ -1,53 +1,17 @@
-use chrono::prelude::*;
-use clap::{arg, command, Arg};
 use pracstro::{coord, moon, sol, time};
-use std::collections::HashMap;
+
+mod value {
+use pracstro::{coord, moon, sol, time};
 use std::fmt;
-
-#[derive(Debug, PartialEq, Clone)]
-enum PerView {
-    Angle,
-    Latitude,
-    Raw,
-    Time,
-}
-
-#[derive(Debug, PartialEq, Clone)]
-enum CoordView {
-    Equatorial,
-    Horizontal(RefFrame),
-    Ecliptic(time::Date),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-enum CelObj {
-    Planet(sol::Planet),
-    Moon,
-    Sun,
-}
-
 #[derive(Debug, PartialEq, Clone, Copy)]
-struct RefFrame {
-    lat: time::Period,
-    long: time::Period,
-    date: time::Date,
+pub struct RefFrame {
+    pub lat: time::Period,
+    pub long: time::Period,
+    pub date: time::Date,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum Value {
-    // Primatives
-    Date(time::Date),
-    Per(time::Period, PerView),
-    Crd(coord::Coord, CoordView),
-    Num(f64),
-    Dist(f64),
-    Phase(time::Period, PhaseView),
-    // Celestial Objects
-    Obj(CelObj),
-}
-
-#[derive(Debug, PartialEq, Clone)]
-enum PhaseView {
+pub enum PhaseView {
     Default,
     Nemoji,
     Semoji,
@@ -55,8 +19,69 @@ enum PhaseView {
     PhaseName,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub enum CrdView {
+    Equatorial,
+    Horizontal(RefFrame),
+    Ecliptic(time::Date),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum CelObj {
+    Planet(sol::Planet),
+    Moon,
+    Sun,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum PerView {
+    Angle,
+    Latitude,
+    Time,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Value {
+    // Primatives
+    Date(time::Date),
+    Per(time::Period, PerView),
+    Crd(coord::Coord, CrdView),
+    Num(f64),
+    Dist(f64),
+    Phase(time::Period, PhaseView),
+    // Celestial Objects
+    Obj(CelObj),
+}
+
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
+        const SEMOJI: [&str; 8] = ["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒"];
+        const PNAMES: [&str; 8] = [
+            "New",
+            "Waxing Crescent",
+            "First Quarter",
+            "Waxing Gibbous",
+            "Full",
+            "Waning Gibbous",
+            "Last Quarter",
+            "Waning Crescent",
+        ];
+
+        fn phaseidx(ilumfrac: f64, ang: time::Period) -> usize {
+            match (ilumfrac, ang.degrees() > 90.0) {
+                (0.00..0.04, _) => 0,
+                (0.96..1.00, _) => 4,
+                (0.46..0.54, true) => 6,
+                (0.46..0.54, false) => 2,
+                (0.54..0.96, true) => 5,
+                (0.54..0.96, false) => 3,
+                (_, true) => 7,
+                (_, false) => 1,
+            }
+        }
+
+        use chrono::DateTime;
         match self {
             Value::Date(d) => write!(
                 f,
@@ -73,13 +98,13 @@ impl fmt::Display for Value {
                 let (d, m, s) = p.to_latitude().degminsec();
                 write!(f, "{:+02}°{:02}′{:02.1}″", d, m, s)
             }
-            Value::Per(p, PerView::Raw) => write!(f, "{:.5}", p.degrees()),
+            //Value::Per(p, PerView::Raw) => write!(f, "{:.5}", p.degrees()),
             Value::Per(p, PerView::Time) => {
                 let (h, m, s) = p.clock();
                 write!(f, "{:02}h{:02}m{:02}s", h, m, s.trunc())
             }
             Value::Dist(d) => write!(f, "{} AU", d),
-            Value::Crd(c, CoordView::Equatorial) => {
+            Value::Crd(c, CrdView::Equatorial) => {
                 let d = c.equatorial();
                 write!(
                     f,
@@ -88,7 +113,7 @@ impl fmt::Display for Value {
                     Value::Per(d.1, PerView::Latitude)
                 )
             }
-            Value::Crd(c, CoordView::Horizontal(rf)) => {
+            Value::Crd(c, CrdView::Horizontal(rf)) => {
                 let d = c.horizon(rf.date, rf.date.time(), rf.lat, rf.long);
                 write!(
                     f,
@@ -97,7 +122,7 @@ impl fmt::Display for Value {
                     Value::Per(d.1, PerView::Latitude)
                 )
             }
-            Value::Crd(c, CoordView::Ecliptic(d)) => {
+            Value::Crd(c, CrdView::Ecliptic(d)) => {
                 let d = c.ecliptic(*d);
                 write!(
                     f,
@@ -117,7 +142,9 @@ impl fmt::Display for Value {
             Value::Phase(pa, PhaseView::Semoji) => {
                 write!(f, "{}", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
             }
-            Value::Phase(pa, PhaseView::Illumfrac) => write!(f, "{:2.1}", (1.0 - pa.cos()) / 2.0),
+            Value::Phase(pa, PhaseView::Illumfrac) => {
+                write!(f, "{:2.1}", 100.0 * (1.0 - pa.cos()) / 2.0)
+            }
             Value::Phase(pa, PhaseView::PhaseName) => {
                 write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
             }
@@ -126,75 +153,42 @@ impl fmt::Display for Value {
         }
     }
 }
-
-const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
-const SEMOJI: [&str; 8] = ["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒"];
-const PNAMES: [&str; 8] = [
-    "New",
-    "Waxing Crescent",
-    "First Quarter",
-    "Waxing Gibbous",
-    "Full",
-    "Waning Gibbous",
-    "Last Quarter",
-    "Waning Crescent",
-];
-
-fn phaseidx(ilumfrac: f64, ang: time::Period) -> usize {
-    match (ilumfrac, ang.degrees() > 90.0) {
-        (0.00..0.04, _) => 0,
-        (0.96..1.00, _) => 4,
-        (0.46..0.54, true) => 6,
-        (0.46..0.54, false) => 2,
-        (0.54..0.96, true) => 5,
-        (0.54..0.96, false) => 3,
-        (_, true) => 7,
-        (_, false) => 1,
-    }
 }
 
-fn step_date(d: time::Date, s: (f64, f64, f64, f64, f64, f64)) -> time::Date {
+use value::*;
+
+
+type Step = (f64, f64, f64);
+
+fn step_date(d: time::Date, s: Step) -> time::Date {
     let (y, mon, d, t) = d.calendar();
-    let (h, min, sec) = t.clock();
-    time::Date::from_calendar(
-        y + s.0 as i64,
-        mon + s.1 as u8,
-        d + s.2 as u8,
-        time::Period::from_clock(h + s.3 as u8, min + s.4 as u8, sec + s.5),
-    )
+    time::Date::from_calendar(y + s.0 as i64, mon + s.1 as u8, d + s.2 as u8, t)
 }
 
 mod parse {
     use super::*;
+    use chrono::prelude::*;
 
     fn suffix_num(s: &str, j: &str) -> Option<f64> {
-        Some(s.strip_suffix(j)?.parse::<f64>().ok()?)
+        s.strip_suffix(j)?.parse::<f64>().ok()
     }
 
     /// A step in time, returns (years, months, days, hours, minutes, seconds)
-    pub fn step(s: &str) -> Result<(f64, f64, f64, f64, f64, f64), &'static str> {
+    pub fn step(s: &str) -> Result<Step, &'static str> {
         if let Some(n) = suffix_num(s, "y") {
-            Ok((n, 0.0, 0.0, 0.0, 0.0, 0.0))
+            Ok((n, 0.0, 0.0))
         } else if let Some(n) = suffix_num(s, "mon") {
-            Ok((0.0, n, 0.0, 0.0, 0.0, 0.0))
+            Ok((0.0, n, 0.0))
         } else if let Some(n) = suffix_num(s, "w") {
-            Ok((0.0, 0.0, n * 7.0, 0.0, 0.0, 0.0))
+            Ok((0.0, 0.0, n * 7.0))
         } else if let Some(n) = suffix_num(s, "d") {
-            Ok((0.0, 0.0, n, 0.0, 0.0, 0.0))
-        } else if let Some(n) = suffix_num(s, "h") {
-            Ok((0.0, 0.0, 0.0, n, 0.0, 0.0))
-        } else if let Some(n) = suffix_num(s, "min") {
-            Ok((0.0, 0.0, 0.0, 0.0, n, 0.0))
-        } else if let Some(n) = suffix_num(s, "s") {
-            Ok((0.0, 0.0, 0.0, 0.0, 0.0, n))
+            Ok((0.0, 0.0, n))
         } else {
             Err("Bad interval")
         }
     }
 
-    pub fn ephemq(
-        s: &str,
-    ) -> Result<(time::Date, (f64, f64, f64, f64, f64, f64), time::Date), &'static str> {
+    pub fn ephemq(s: &str) -> Result<(time::Date, Step, time::Date), &'static str> {
         let mut eq = s.split(',');
         let start = eq.next().ok_or("Bad CSV")?;
         let ste = eq.next().ok_or("Bad CSV")?;
@@ -299,7 +293,7 @@ mod parse {
 
     pub fn function(s: &str, stack: &mut Vec<Value>, rf: &mut RefFrame) -> Option<()> {
         if let Value::Obj(c) = &stack[stack.len() - 1] {
-            if let Ok(v) = property_of(c.clone(), s, rf) {
+            if let Ok(v) = property_of(c, s, rf) {
                 stack.push(v);
                 return Some(());
             }
@@ -344,11 +338,11 @@ mod parse {
                 _ => return None,
             },
             "to_horiz" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Crd(c, CoordView::Horizontal(rf.clone()))),
+                Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Horizontal(*rf))),
                 _ => return None,
             },
             "to_equatorial" => match stack.pop()? {
-                Value::Crd(c, _) => stack.push(Value::Crd(c, CoordView::Equatorial)),
+                Value::Crd(c, _) => stack.push(Value::Crd(c, CrdView::Equatorial)),
                 _ => return None,
             },
             _ => return None,
@@ -357,50 +351,90 @@ mod parse {
         Some(())
     }
 
-    pub fn word(
-        s: &str,
-        stack: &mut Vec<Value>,
-        catalog: &HashMap<&str, CelObj>,
-        rf: &mut RefFrame,
-    ) -> Option<()> {
-        if let Some(c) = get_catobj(s, catalog) {
-            stack.push(Value::Obj(c));
-            Some(())
-        } else if let Some(()) = function(s, stack, rf) {
-            Some(())
-        } else {
-            stack.push(primative(s)?);
-            Some(())
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_rdunix() {
+        assert_eq!(
+            primative("@86400").unwrap(),
+            Value::Date(time::Date::from_calendar(
+                1970,
+                1,
+                2,
+                time::Period::default()
+            ))
+        );
+        assert_eq!(
+            primative("86400u").unwrap(),
+            Value::Date(time::Date::from_calendar(
+                1970,
+                1,
+                2,
+                time::Period::default()
+            ))
+        );
+        assert_eq!(
+            primative("86400jd").unwrap(),
+            Value::Date(time::Date::from_julian(86400.0))
+        );
+        assert_eq!(primative("@86400U"), None);
+
+        assert_eq!(
+            primative("120.5d").unwrap(),
+            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+        );
+        assert_eq!(
+            primative("120.5deg").unwrap(),
+            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+        );
+        assert_eq!(
+            primative("120.5d").unwrap(),
+            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+        );
+        assert_eq!(
+            primative("120.5°").unwrap(),
+            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+        );
+        assert_eq!(
+            primative("120.5°").unwrap(),
+            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
+        );
+        assert_eq!(
+            primative("2000-12-25").unwrap(),
+            Value::Date(time::Date::from_calendar(
+                2000,
+                12,
+                25,
+                time::Period::default()
+            ))
+        );
     }
 }
-
-fn get_catobj(s: &str, catalog: &HashMap<&str, CelObj>) -> Option<CelObj> {
-    Some(catalog.get(s)?.clone())
 }
 
-fn property_of(obj: CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static str> {
+fn property_of(obj: &CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static str> {
     match (q, obj.clone()) {
-        ("equ", CelObj::Planet(p)) => Ok(Value::Crd(p.location(rf.date), CoordView::Equatorial)),
+        ("equ", CelObj::Planet(p)) => Ok(Value::Crd(p.location(rf.date), CrdView::Equatorial)),
         ("equ", CelObj::Sun) => Ok(Value::Crd(
             sol::SUN.location(rf.date),
-            CoordView::Equatorial,
+            CrdView::Equatorial,
         )),
         ("equ", CelObj::Moon) => Ok(Value::Crd(
             moon::MOON.location(rf.date),
-            CoordView::Equatorial,
+            CrdView::Equatorial,
         )),
         ("horiz", _) => {
-            let Value::Crd(p, _) = property_of(obj.clone(), "equ", rf)? else {
+            let Value::Crd(p, _) = property_of(obj, "equ", rf)? else {
                 panic!();
             };
-            Ok(Value::Crd(p, CoordView::Horizontal(rf.clone())))
+            Ok(Value::Crd(p, CrdView::Horizontal(*rf)))
         }
         ("ecliptic", _) => {
-            let Value::Crd(p, _) = property_of(obj.clone(), "equ", rf)? else {
+            let Value::Crd(p, _) = property_of(obj, "equ", rf)? else {
                 panic!();
             };
-            Ok(Value::Crd(p, CoordView::Ecliptic(rf.date)))
+            Ok(Value::Crd(p, CrdView::Ecliptic(rf.date)))
         }
         ("distance", CelObj::Planet(p)) => Ok(Value::Dist(p.distance(rf.date))),
         ("distance", CelObj::Sun) => Ok(Value::Dist(sol::SUN.distance(rf.date))),
@@ -414,24 +448,25 @@ fn property_of(obj: CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static st
             PhaseView::Default,
         )),
         ("phaseemoji", _) => {
-            let Value::Phase(p, _) = property_of(obj.clone(), "phase", rf)? else {
+            let Value::Phase(p, _) = property_of(obj, "phase", rf)? else {
                 panic!();
             };
             // The default emojis for people who don't specify a latitude are the northern ones
-            if rf.lat.degrees() >= 0.0 {
+            eprintln!("{:?}", rf.lat.to_latitude().degrees());
+            if rf.lat.to_latitude().degrees() >= 0.0 {
                 Ok(Value::Phase(p, PhaseView::Nemoji))
             } else {
                 Ok(Value::Phase(p, PhaseView::Semoji))
             }
         }
         ("phasename", _) => {
-            let Value::Phase(p, _) = property_of(obj.clone(), "phase", rf)? else {
+            let Value::Phase(p, _) = property_of(obj, "phase", rf)? else {
                 panic!();
             };
             Ok(Value::Phase(p, PhaseView::PhaseName))
         }
         ("illumfrac", _) => {
-            let Value::Phase(p, _) = property_of(obj.clone(), "phase", rf)? else {
+            let Value::Phase(p, _) = property_of(obj, "phase", rf)? else {
                 panic!();
             };
             Ok(Value::Phase(p, PhaseView::Illumfrac))
@@ -447,33 +482,60 @@ fn property_of(obj: CelObj, q: &str, rf: &RefFrame) -> Result<Value, &'static st
 /// A query is anything that produces a return stack dependant on reference frame and catalog.
 mod query {
     use super::*;
+    use std::collections::HashMap;
+
+    fn get_catobj(s: &str, catalog: &HashMap<&str, CelObj>) -> Option<CelObj> {
+        Some(catalog.get(s)?.clone())
+    }
 
     /// An object and a CSV list of properties. The return stack is these properties.
     pub fn basic(
-        words: Vec<String>,
+        words: &[String],
         rf: RefFrame,
         catalog: &HashMap<&str, CelObj>,
     ) -> Result<Vec<(Value, String)>, &'static str> {
-        let obj = get_catobj(&words[0].clone(), &catalog).unwrap();
-        Ok(words[1].split(',').map(|prop| (property_of(obj.clone(), prop, &rf).unwrap(), prop.to_owned())).collect())
+        let obj = get_catobj(&words[0].clone(), catalog).unwrap();
+        Ok(words[1]
+            .split(',')
+            .map(|prop| (property_of(&obj, prop, &rf).unwrap(), prop.to_owned()))
+            .collect())
     }
 
     pub fn rpn(
-        words: Vec<String>,
+        words: &[String],
         rf: RefFrame,
         c: &HashMap<&str, CelObj>,
     ) -> Result<Vec<(Value, String)>, &'static str> {
-        let mut tmprf = rf.clone(); // For ephemeris, this value is not safe to variate between queries
+        pub fn word(
+            s: &str,
+            stack: &mut Vec<Value>,
+            catalog: &HashMap<&str, CelObj>,
+            rf: &mut RefFrame,
+        ) -> Option<()> {
+            if let Some(c) = get_catobj(s, catalog) {
+                stack.push(Value::Obj(c));
+                Some(())
+            } else if let Some(()) = parse::function(s, stack, rf) {
+                Some(())
+            } else {
+                stack.push(parse::primative(s)?);
+                Some(())
+            }
+        }
+        let mut tmprf = rf; // For ephemeris, this value is not safe to variate between queries
         let mut stack: Vec<Value> = Vec::new();
-        words.iter().for_each(|x| {
-            parse::word(&x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query")
-        });
-        Ok(stack.iter().map(|v| (v.clone(), "Stack Object".to_owned())).collect())
+        words
+            .iter()
+            .for_each(|x| word(x, &mut stack, c, &mut tmprf).expect("Failed to parse RPN query"));
+        Ok(stack
+            .iter()
+            .map(|v| (v.clone(), "Stack Object".to_owned()))
+            .collect())
     }
 }
 
-fn read_catalog() -> HashMap<&'static str, CelObj> {
-    HashMap::from([
+fn read_catalog() -> std::collections::HashMap<&'static str, CelObj> {
+    std::collections::HashMap::from([
         ("sun", CelObj::Sun),
         ("mercury", CelObj::Planet(sol::MERCURY)),
         ("venus", CelObj::Planet(sol::VENUS)),
@@ -487,74 +549,127 @@ fn read_catalog() -> HashMap<&'static str, CelObj> {
     ])
 }
 
-mod format_retstack {
+mod output {
     use super::*;
 
     pub struct Driver {
-    	/// Header
-    	pub start: fn() -> (),
-    	pub propheader: fn(Vec<(Value, String)>, time::Date) -> String,
-    	pub query: fn(Vec<(Value, String)>) -> String,
-    	pub ephemq: fn(Vec<(Value, String)>, time::Date) -> String,
-    	pub footer: fn() -> (),
+        /// Starting information
+        pub start: fn() -> (),
+        /// Headers for columns, usually
+        pub propheader: fn(Vec<(Value, String)>, time::Date) -> (),
+        /// The formatting in a normal query
+        pub query: fn(Vec<(Value, String)>) -> (),
+        /// The formatting in a ephemeris query
+        pub ephemq: fn(Vec<(Value, String)>, time::Date) -> (),
+        /// Ending information
+        pub footer: fn() -> (),
     }
 
     pub fn nop() {}
-    pub fn todo_nul() { todo!() }
-    pub fn nop_fa(_: Vec<(Value, String)>) -> String { "".to_owned() }
-    pub fn todo_fa(_: Vec<(Value, String)>, _: time::Date) -> String { todo!() }
+    pub fn nop_fa(_: Vec<(Value, String)>, _: time::Date) {}
 
+    fn term_proph(rs: Vec<(Value, String)>, _d: time::Date) {
+        print!("{:^22}", "date");
+        for x in rs.iter().map(|x| x.1.clone()) {
+            print!("{:^29}", x);
+        }
+        print!("\n{:=<1$}\n", "", 29 * rs.len() + 22);
+    }
+    fn term_q(rs: Vec<(Value, String)>) {
+        print!(
+            "{}\n",
+            rs.iter()
+                .map(|x| x.0.to_string())
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
+    }
+    fn term_eq(rs: Vec<(Value, String)>, d: time::Date) {
+        print!("{:^22}", Value::Date(d).to_string());
+        for x in rs.iter().map(|x| x.0.to_string()) {
+            print!("{:<29}", x);
+        }
+        print!("\n");
+    }
     pub const TERM: Driver = Driver {
-    	start: nop,
-    	propheader: todo_fa,
-    	query: space_seperated,
-    	ephemq: todo_fa,
-    	footer: nop,
+        start: nop,
+        propheader: term_proph,
+        query: term_q,
+        ephemq: term_eq,
+        footer: nop,
     };
 
+    fn csv_proph(rs: Vec<(Value, String)>, _d: time::Date) {
+        print!(
+            "date,{}\n",
+            rs.iter()
+                .map(|x| x.1.clone())
+                .collect::<Vec<String>>()
+                .join(",")
+        )
+    }
+    fn csv_q(rs: Vec<(Value, String)>) {
+        print!(
+            "{}",
+            rs.iter()
+                .map(|x| x.0.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        );
+    }
+
+    fn csv_eq(rs: Vec<(Value, String)>, d: time::Date) {
+        print!(
+            "{},{}\n",
+            Value::Date(d),
+            rs.iter()
+                .map(|x| x.0.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        )
+    }
     pub const CSV: Driver = Driver {
-    	start: nop,
-    	propheader: csv_proph,
-    	query: csv_q,
-    	ephemq: csv_eq,
-    	footer: nop,
+        start: nop,
+        propheader: csv_proph,
+        query: csv_q,
+        ephemq: csv_eq,
+        footer: nop,
     };
 
-    pub fn space_seperated(rs: Vec<(Value, String)>) -> String {
-        rs.iter()
-            .map(|x| x.0.to_string())
-            .collect::<Vec<String>>()
-            .join(" ")
+    fn json_init() -> () {
+        print!("{{ \"q\": [");
     }
-
-    pub fn csv_q(rs: Vec<(Value, String)>) -> String {
-        rs.iter()
-            .map(|x| x.0.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
+    fn json_q(rs: Vec<(Value, String)>) {
+        print!("{{");
+        rs.iter().for_each(|(x, y)| print!("\"{}\": \"{}\",", y, x));
+        print!("\"isq\": true }},");
     }
-
-    pub fn csv_eq(rs: Vec<(Value, String)>, d: time::Date) -> String {
-    	format!("{},{}\n", Value::Date(d),
-        rs.iter()
-            .map(|x| x.0.to_string())
-            .collect::<Vec<String>>()
-            .join(","))
+    fn json_eq(rs: Vec<(Value, String)>, d: time::Date) {
+        print!("{{ \"timestamp\": {},", d.unix());
+        rs.iter().for_each(|(x, y)| print!("\"{}\": \"{}\",", y, x));
+        print!("\"isq\": true }},");
     }
-
-    pub fn csv_proph(rs: Vec<(Value, String)>, d: time::Date) -> String {
-    	format!("date,{}\n", rs.iter() .map(|x| x.1.clone()) .collect::<Vec<String>>() .join(","))
+    fn json_footer() -> () {
+        print!("{{\"isq\": false}} ] }}");
     }
+    pub const JSON: Driver = Driver {
+        start: json_init,
+        propheader: nop_fa,
+        query: json_q,
+        ephemq: json_eq,
+        footer: json_footer,
+    };
 }
 
 fn main() {
+    use clap::{arg, command, Arg};
     let matches = command!()
         .arg(arg!(-l --lat [Angle] "Set the latitude").value_parser(parse::angle))
         .arg(arg!(-L --long [Angle] "Set the longitude").value_parser(parse::angle))
         .arg(arg!(-d --date [Date] "Set the date").value_parser(parse::date))
         .arg(
             arg!(-T --format [Format] "Output Format")
-                .value_parser(["term", "csv"])
+                .value_parser(["term", "csv", "json"])
                 .default_value("term"),
         )
         .arg(arg!(-r --rpn "Arguments are parsed as RPN words").action(clap::ArgAction::SetTrue))
@@ -569,8 +684,9 @@ fn main() {
         date: *matches.get_one("date").unwrap_or(&time::Date::now()),
     };
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
-        "term" => format_retstack::TERM,
-        "csv" => format_retstack::CSV,
+        "term" => output::TERM,
+        "csv" => output::CSV,
+        "json" => output::JSON,
         _ => todo!(),
     };
 
@@ -580,89 +696,30 @@ fn main() {
         .map(|x| x.to_lowercase())
         .collect();
 
-    let q = |myrf: RefFrame|
+    let q = |myrf: RefFrame| {
         if !matches.get_flag("rpn") {
-            query::basic(words.clone(), myrf.clone(), &catalog).unwrap()
+            query::basic(&words, myrf, &catalog).unwrap()
         } else {
-            query::rpn(words.clone(), myrf.clone(), &catalog).unwrap()
+            query::rpn(&words, myrf, &catalog).unwrap()
         }
-    ;
+    };
 
     (formatter.start)();
 
-    if let Some((start, step, end)) = matches.get_one::<(time::Date, (f64, f64, f64, f64, f64, f64), time::Date)>("ephem") {
-    	myrf.date = *start;
-    	let first = q(myrf);
-    	print!("{}",(formatter.propheader)(first.clone(), myrf.date));
-    	print!("{}",(formatter.ephemq)(first.clone(), myrf.date));
-    	while myrf.date.julian() < end.julian() {
-    		myrf.date = step_date(myrf.date, *step);
-    		print!("{}",(formatter.ephemq)(q(myrf), myrf.date));
-    	}
+    if let Some((start, step, end)) =
+        matches.get_one::<(time::Date, Step, time::Date)>("ephem")
+    {
+        myrf.date = *start;
+        let first = q(myrf);
+        (formatter.propheader)(first.clone(), myrf.date);
+        (formatter.ephemq)(first.clone(), myrf.date);
+        while myrf.date.julian() < end.julian() {
+            myrf.date = step_date(myrf.date, *step);
+            (formatter.ephemq)(q(myrf), myrf.date);
+        }
     } else {
-    	println!("{}", (formatter.query)(q(myrf)));
+        (formatter.query)(q(myrf));
     }
 
     (formatter.footer)();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_rdunix() {
-        assert_eq!(
-            parse::primative("@86400").unwrap(),
-            Value::Date(time::Date::from_calendar(
-                1970,
-                1,
-                2,
-                time::Period::default()
-            ))
-        );
-        assert_eq!(
-            parse::primative("86400u").unwrap(),
-            Value::Date(time::Date::from_calendar(
-                1970,
-                1,
-                2,
-                time::Period::default()
-            ))
-        );
-        assert_eq!(
-            parse::primative("86400jd").unwrap(),
-            Value::Date(time::Date::from_julian(86400.0))
-        );
-        assert_eq!(parse::primative("@86400U"), None);
-
-        assert_eq!(
-            parse::primative("120.5d").unwrap(),
-            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-        );
-        assert_eq!(
-            parse::primative("120.5deg").unwrap(),
-            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-        );
-        assert_eq!(
-            parse::primative("120.5d").unwrap(),
-            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-        );
-        assert_eq!(
-            parse::primative("120.5°").unwrap(),
-            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-        );
-        assert_eq!(
-            parse::primative("120.5°").unwrap(),
-            Value::Per(time::Period::from_degrees(120.5), PerView::Angle)
-        );
-        assert_eq!(
-            parse::primative("2000-12-25").unwrap(),
-            Value::Date(time::Date::from_calendar(
-                2000,
-                12,
-                25,
-                time::Period::default()
-            ))
-        );
-    }
 }
