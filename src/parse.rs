@@ -1,4 +1,3 @@
-
 use crate::catalog;
 use crate::timestep;
 use crate::Property;
@@ -23,6 +22,7 @@ pub fn property(sm: &str) -> Result<Property, &'static str> {
         "mag" | "magnitude" | "brightness" => Ok(Property::Magnitude),
         "phase" => Ok(Property::PhaseDefault),
         "phaseemoji" => Ok(Property::PhaseEmoji),
+        "phasename" => Ok(Property::PhaseName),
         "angdia" => Ok(Property::AngDia),
         "phaseprecent" | "illumfrac" => Ok(Property::IllumFrac),
         _ => Err("Unknown Property"),

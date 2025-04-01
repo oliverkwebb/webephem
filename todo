@@ -24,6 +24,7 @@ Features:
     - [*] latlong accept no suffix numbers
     - [*] Error on lati > 90d
 - [ ] Full readme with examples
+- [ ](?)  Anstyle formatted terminal tables
 - [ ] Moar Calculations
  - [ ] add minor planets and other solar objects
  - [ ] add stars (star catalog data where?)

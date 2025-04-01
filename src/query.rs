@@ -84,16 +84,13 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
 }
 
 /// An object and a CSV list of properties. The return stack is these properties.
-pub fn basic(
+pub fn run(
     object: &CelObj,
     proplist: &[Property],
-    rf: RefFrame,
+    rf: &RefFrame,
 ) -> Result<Vec<Value>, &'static str> {
     Ok(proplist
         .iter()
-        .map(|prop| {
-            property_of(object, prop.clone(), &rf)
-                .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
-        })
+        .map(|prop| property_of(object, prop.clone(), rf).unwrap_or_else(|e| panic!("Error on property {prop}: {e}")))
         .collect())
 }

@@ -75,32 +75,29 @@ fn main() {
     let matches = command!()
     	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
         .arg(
-            arg!(-l --latlong ["Latitude,Longitude"] "Set the latitude/longitude")
-                .value_parser(parse::latlong)
-                .default_value("none"),
-        )
-        .arg(
             arg!(-d --date [Date] "Set the date")
                 .value_parser(parse::date)
                 .default_value("now"),
         )
         .arg(
+            arg!(-l --latlong ["Latitude,Longitude"] "Set the latitude/longitude")
+                .value_parser(parse::latlong)
+                .default_value("none"),
+        )
+        .arg(arg!(-E --ephem ["Start,Step,End"] "Generates Table").value_parser(parse::ephemq))
+        .arg(
             arg!(-T --format [Format] "Output Format")
                 .value_parser(["term", "csv", "json"])
                 .default_value("term"),
         )
-        .arg(arg!(-E --ephem ["Start,Step,End"] "Generates Table").value_parser(parse::ephemq))
         .arg(arg!([object] "Celestial Object").required(true).value_parser(parse::object))
         .arg(arg!([properties] ... "Properties").required(true).value_parser(parse::property))
         .get_matches();
 
-    let latll: Option<(time::Period, time::Period)> = *matches.get_one("latlong").unwrap();
-
     let mut myrf: RefFrame = RefFrame {
-        latlong: latll,
+        latlong: *matches.get_one("latlong").unwrap(),
         date: *matches.get_one("date").unwrap(),
     };
-    let querier = query::basic;
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
         "term" => output::TERM,
         "csv" => output::CSV,
@@ -115,9 +112,7 @@ fn main() {
         .cloned()
         .collect();
 
-    let q = |myrf: RefFrame| {
-        querier(obj, &propl, myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
-    };
+    let q = |myrf: RefFrame| query::run(obj, &propl, &myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"));
 
     (formatter.start)();
 
@@ -127,8 +122,8 @@ fn main() {
         myrf.date = *start;
         (formatter.propheader)(&propl, myrf.date);
         while myrf.date.julian() < end.julian() {
-            myrf.date = timestep::step_forward_date(myrf.date, *step);
             (formatter.ephemq)(q(myrf), &propl, myrf.date);
+            myrf.date = timestep::step_forward_date(myrf.date, *step);
         }
     } else {
         (formatter.query)(q(myrf));
