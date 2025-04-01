@@ -19,7 +19,7 @@ pub fn nop() {}
 pub fn nop_fa(_: Vec<(Value, String)>, _: time::Date) {}
 
 fn term_proph(rs: Vec<(Value, String)>, _: time::Date) {
-    print!("{:^22}", "date");
+    print!("{:^22}", "Date");
     rs.iter().for_each(|x| print!("{:^29}", x.1));
     print!("\n{:=<1$}\n", "", 29 * rs.len() + 22);
 }
@@ -47,7 +47,7 @@ pub const TERM: Driver = Driver {
 
 fn csv_proph(rs: Vec<(Value, String)>, _d: time::Date) {
     println!(
-        "date,{}",
+        "Date,{}",
         rs.iter()
             .map(|x| x.1.clone())
             .collect::<Vec<String>>()

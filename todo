@@ -7,6 +7,7 @@ Bugs/Internal:
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
 - [ ] merge json printing and normal printing into one trait with alternate
+- [ ] refactor vec property code
 Features:
 - [ ] Clap-related plumbing
   - [*] Help text
@@ -14,9 +15,9 @@ Features:
     - [ ] Merge -l and -L into -l lat,long
     - [ ] latlong accept no suffix numbers
     - [ ] Error on lati > 90d
-  - [ ] Verify catalog objects and properties before runtime
-    - [ ] Pre-parse and enumerate property names
+  - [*] Verify catalog objects and properties before runtime
     - [*] Un-CSV the property list
+    - [*] Pre-parse and enumerate property names
 - [ ] Ephemeris Generation and relative times
  - [ ] relative ephemeris start/end dates (i.e. -1w,1d,+1w)
  - [ ] Better Working Negative Time Steps (Maybe chrono can help?)
