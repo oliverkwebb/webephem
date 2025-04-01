@@ -1,43 +1,8 @@
 use pracstro::time;
-use std::fmt;
 use value::*;
 
 pub mod output;
 pub mod value;
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Property {
-    Equatorial,
-    Horizontal,
-    Ecliptic,
-    Distance,
-    Magnitude,
-    PhaseDefault,
-    PhaseName,
-    PhaseEmoji,
-    AngDia,
-    IllumFrac,
-}
-impl fmt::Display for Property {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Property::Equatorial => "Coordinates (RA/De)",
-                Property::Horizontal => "Coordinates (Azi/Alt)",
-                Property::Ecliptic => "Coordinates (Ecliptic)",
-                Property::Distance => "Distance (AU)",
-                Property::Magnitude => "Magnitude",
-                Property::PhaseDefault => "Phase",
-                Property::PhaseEmoji => "Phase Emoji",
-                Property::PhaseName => "Phase Name",
-                Property::IllumFrac => "Illuminated Frac.",
-                Property::AngDia => "Angular Diameter",
-            }
-        )
-    }
-}
 
 mod catalog {
     use crate::value::*;
@@ -266,16 +231,13 @@ mod query {
         object: &CelObj,
         proplist: &[Property],
         rf: RefFrame,
-    ) -> Result<Vec<(Value, String)>, &'static str> {
+    ) -> Result<Vec<Value>, &'static str> {
         Ok(proplist
             .iter()
-            .map(|prop| {
-                (
+            .map(|prop|
                     property_of(object, prop.clone(), &rf)
                         .unwrap_or_else(|e| panic!("Error on property {prop}: {e}")),
-                    prop.to_string(),
-                )
-            })
+            )
             .collect())
     }
 }
@@ -326,11 +288,11 @@ fn main() {
     let propl: Vec<Property> = matches
         .get_many::<Property>("properties")
         .unwrap()
-        .map(|x| x.clone())
+        .cloned()
         .collect();
 
     let q = |myrf: RefFrame| {
-        querier(&obj, &propl, myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+        querier(obj, &propl, myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
     };
 
     (formatter.start)();
@@ -339,12 +301,10 @@ fn main() {
         matches.get_one::<(time::Date, time::TimeStep, time::Date)>("ephem")
     {
         myrf.date = *start;
-        let first = q(myrf);
-        (formatter.propheader)(first.clone(), myrf.date);
-        (formatter.ephemq)(first.clone(), myrf.date);
+        (formatter.propheader)(&propl, myrf.date);
         while myrf.date.julian() < end.julian() {
             myrf.date = myrf.date + step.clone();
-            (formatter.ephemq)(q(myrf), myrf.date);
+            (formatter.ephemq)(q(myrf), &propl, myrf.date);
         }
     } else {
         (formatter.query)(q(myrf));

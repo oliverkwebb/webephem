@@ -221,3 +221,37 @@ impl fmt::Display for Value {
         }
     }
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Property {
+    Equatorial,
+    Horizontal,
+    Ecliptic,
+    Distance,
+    Magnitude,
+    PhaseDefault,
+    PhaseName,
+    PhaseEmoji,
+    AngDia,
+    IllumFrac,
+}
+impl fmt::Display for Property {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Property::Equatorial => "Coordinates (RA/De)",
+                Property::Horizontal => "Coordinates (Azi/Alt)",
+                Property::Ecliptic => "Coordinates (Ecliptic)",
+                Property::Distance => "Distance (AU)",
+                Property::Magnitude => "Magnitude",
+                Property::PhaseDefault => "Phase",
+                Property::PhaseEmoji => "Phase Emoji",
+                Property::PhaseName => "Phase Name",
+                Property::IllumFrac => "Illuminated Frac.",
+                Property::AngDia => "Angular Diameter",
+            }
+        )
+    }
+}
