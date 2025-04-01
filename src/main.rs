@@ -87,7 +87,7 @@ mod parse {
         let s = &sm.to_lowercase();
         match s.as_str() {
             "equ" | "equa" | "equatorial" => Ok(Property::Equatorial),
-            "horiz" | "horizontal" => Ok(Property::Equatorial),
+            "horiz" | "horizontal" => Ok(Property::Horizontal),
             "ecl" | "ecliptic" => Ok(Property::Ecliptic),
             "dist" | "distance" => Ok(Property::Distance),
             "mag" | "magnitude" | "brightness" => Ok(Property::Magnitude),
@@ -182,7 +182,7 @@ mod parse {
         } else if let Some(n) = suffix_num(sl, "n") {
             Ok(time::Period::from_degrees(n))
         } else if let Some(n) = suffix_num(sl, "s") {
-            Ok(time::Period::from_degrees(n))
+            Ok(time::Period::from_degrees(-n))
         } else if let Some(n) = suffix_num(sl, "d") {
             Ok(time::Period::from_degrees(n))
         } else if let Some(n) = suffix_num(sl, "deg") {
@@ -195,6 +195,30 @@ mod parse {
             Err("Invalid Angle")
         }
     }
+
+    pub fn latlong(s: &str) -> Result<Option<(time::Period, time::Period)>, &'static str> {
+    	fn long(s: &str) -> Result<time::Period, &'static str> {
+    		if let Ok(n) = s.parse::<f64>() {
+    			Ok(time::Period::from_degrees(n))
+    		}
+    		else {
+    			angle(s)
+    		}
+    	}
+    	fn lat(s: &str) -> Result<time::Period, &'static str> {
+    		let unchecked_l = long(s)?;
+    		if unchecked_l.to_latitude().degrees() > 90.0 {
+    			Err("Latitude over 90 degrees")
+    		} else {
+    			Ok(unchecked_l)
+    		}
+    	}
+    	if s == "none" { return Ok(None); };
+        let mut eq = s.split(',');
+        let lats = eq.next().ok_or("Bad CSV")?;
+        let longs = eq.next().ok_or("Bad CSV")?;
+        Ok(Some((lat(lats)?, long(longs)?)))
+    }
 }
 
 /// A query is anything that produces a return stack dependent on reference frame and catalog.
@@ -204,6 +228,15 @@ mod query {
     use pracstro::{moon, sol};
 
     pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'static str> {
+    	fn hemisphere(ll: Option<(pracstro::time::Period, pracstro::time::Period)>) -> bool {
+                if ll.is_none() {
+                    true
+                } else if ll.unwrap().0.to_latitude().degrees() >= 0.0 {
+                    true
+                } else {
+                    false
+                }
+    	}
         match (q, obj.clone()) {
             (Property::Equatorial, CelObj::Planet(p)) => {
                 Ok(Value::Crd(p.location(rf.date), CrdView::Equatorial))
@@ -216,6 +249,9 @@ mod query {
                 CrdView::Equatorial,
             )),
             (Property::Horizontal, _) => {
+            	if rf.latlong.is_none() {
+            		return Err("Need to specify a lat/long with -l");
+            	};
                 let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
                     panic!();
                 };
@@ -234,20 +270,19 @@ mod query {
             (Property::Magnitude, CelObj::Sun) => Ok(Value::Num(sol::SUN.magnitude(rf.date))),
             (Property::Magnitude, CelObj::Moon) => Ok(Value::Num(moon::MOON.magnitude(rf.date))),
             (Property::PhaseDefault, CelObj::Planet(p)) => {
-                Ok(Value::Phase(p.phaseangle(rf.date), PhaseView::Default))
+                Ok(Value::Phase(p.phaseangle(rf.date), PhaseView::Default(hemisphere(rf.latlong))))
             }
             (Property::PhaseDefault, CelObj::Sun) => Err("Can't get phase of the Sun"),
             (Property::PhaseDefault, CelObj::Moon) => Ok(Value::Phase(
                 moon::MOON.phaseangle(rf.date),
-                PhaseView::Default,
+                PhaseView::Default(hemisphere(rf.latlong)),
             )),
             (Property::PhaseEmoji, _) => {
                 let Value::Phase(p, _) = property_of(obj, Property::PhaseDefault, rf)? else {
                     panic!();
                 };
                 // The default emojis for people who don't specify a latitude are the northern ones
-                eprintln!("{:?}", rf.lat.to_latitude().degrees());
-                if rf.lat.to_latitude().degrees() >= 0.0 {
+                if hemisphere(rf.latlong) {
                     Ok(Value::Phase(p, PhaseView::Nemoji))
                 } else {
                     Ok(Value::Phase(p, PhaseView::Semoji))
@@ -298,14 +333,9 @@ fn main() {
     let matches = command!()
     	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
         .arg(
-            arg!(-l --lat [Angle] "Set the latitude")
-                .value_parser(parse::angle)
-                .default_value("0d"),
-        )
-        .arg(
-            arg!(-L --long [Angle] "Set the longitude")
-                .value_parser(parse::angle)
-                .default_value("0d"),
+            arg!(-l --latlong ["Latitude,Longitude"] "Set the coordinates")
+                .value_parser(parse::latlong)
+                .default_value("none"),
         )
         .arg(
             arg!(-d --date [Date] "Set the date")
@@ -322,9 +352,10 @@ fn main() {
         .arg(arg!([properties] ... "Properties").required(true).value_parser(parse::property))
         .get_matches();
 
+    let latll: Option<(time::Period, time::Period)> = *matches.get_one("latlong").unwrap();
+
     let mut myrf: RefFrame = RefFrame {
-        lat: *matches.get_one("lat").unwrap(),
-        long: *matches.get_one("long").unwrap(),
+        latlong: latll,
         date: *matches.get_one("date").unwrap(),
     };
     let querier = query::basic;

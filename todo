@@ -5,7 +5,7 @@ Bugs/Internal:
 - [*] -l -L fail on uppercase N/S/E/W
 - [*] refactor vec property code
 - [*] merge json printing and normal printing into one trait with alternate
-- [ ] Southern Phase emojis
+- [*] Southern Phase emojis
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
 Features:
@@ -14,15 +14,15 @@ Features:
  - [*] Better Working Negative Time Steps (Maybe chrono can help?)
  - [*] Negative checks in ephemeris generation
 - [*] Shorten Distance Formatting
-- [ ] Clap-related plumbing
+- [*] Clap-related plumbing
   - [*] Help text
   - [*] Verify catalog objects and properties before runtime
     - [*] Un-CSV the property list
     - [*] Pre-parse and enumerate property names
-  - [ ] Make lat/long an option instead of default 0
-    - [ ] Merge -l and -L into -l lat,long
-    - [ ] latlong accept no suffix numbers
-    - [ ] Error on lati > 90d
+  - [*] Make lat/long an option instead of default 0
+    - [*] Merge -l and -L into -l lat,long
+    - [*] latlong accept no suffix numbers
+    - [*] Error on lati > 90d
 - [ ] Full readme with examples
 - [ ] Moar Calculations
  - [ ] add minor planets and other solar objects

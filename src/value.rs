@@ -2,14 +2,13 @@ use pracstro::{coord, sol, time};
 use std::fmt;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct RefFrame {
-    pub lat: time::Period,
-    pub long: time::Period,
+    pub latlong: Option<(time::Period, time::Period)>,
     pub date: time::Date,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum PhaseView {
-    Default,
+    Default(bool),
     Nemoji,
     Semoji,
     Illumfrac,
@@ -118,7 +117,8 @@ impl fmt::Display for Value {
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
-                    let d = c.horizon(rf.date, rf.date.time(), rf.lat, rf.long);
+                	let (lat, long) = rf.latlong.unwrap();
+                    let d = c.horizon(rf.date, rf.date.time(), lat, long);
                     write!(
                         f,
                         "{} {}",
@@ -135,10 +135,10 @@ impl fmt::Display for Value {
                         Value::Per(d.1, PerView::Latitude)
                     )
                 }
-                Value::Phase(pa, PhaseView::Default) => {
+                Value::Phase(pa, PhaseView::Default(n)) => {
                     let ilf = (1.0 - pa.cos()) / 2.0;
                     let pi = phaseidx(ilf, *pa);
-                    write!(f, "{} {} ({:2.1}%)", EMOJIS[pi], PNAMES[pi], ilf * 100.0)
+                    write!(f, "{} {} ({:2.1}%)", if *n { EMOJIS[pi] } else { SEMOJI[pi] }, PNAMES[pi], ilf * 100.0)
                 }
                 Value::Phase(pa, PhaseView::Nemoji) => {
                     write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
@@ -179,7 +179,8 @@ impl fmt::Display for Value {
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
-                    let d = c.horizon(rf.date, rf.date.time(), rf.lat, rf.long);
+                	let (lat, long) = rf.latlong.unwrap();
+                    let d = c.horizon(rf.date, rf.date.time(), lat, long);
                     write!(
                         f,
                         "[{:#}, {:#}]",
@@ -196,13 +197,13 @@ impl fmt::Display for Value {
                         Value::Per(d.1, PerView::Latitude)
                     )
                 }
-                Value::Phase(pa, PhaseView::Default) => {
+                Value::Phase(pa, PhaseView::Default(h)) => {
                     let ilf = (1.0 - pa.cos()) / 2.0;
                     let pi = phaseidx(ilf, *pa);
                     write!(
                         f,
                         "\"{} {} ({:2.1}%)\"",
-                        EMOJIS[pi],
+                        if *h { EMOJIS[pi] } else { SEMOJI[pi] },
                         PNAMES[pi],
                         ilf * 100.0
                     )
