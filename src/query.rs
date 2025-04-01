@@ -1,4 +1,3 @@
-
 use crate::value::*;
 use crate::Property;
 use pracstro::{moon, sol};
@@ -91,6 +90,9 @@ pub fn run(
 ) -> Result<Vec<Value>, &'static str> {
     Ok(proplist
         .iter()
-        .map(|prop| property_of(object, prop.clone(), rf).unwrap_or_else(|e| panic!("Error on property {prop}: {e}")))
+        .map(|prop| {
+            property_of(object, prop.clone(), rf)
+                .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
+        })
         .collect())
 }

@@ -112,7 +112,9 @@ fn main() {
         .cloned()
         .collect();
 
-    let q = |myrf: RefFrame| query::run(obj, &propl, &myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"));
+    let q = |myrf: RefFrame| {
+        query::run(obj, &propl, &myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+    };
 
     (formatter.start)();
 
