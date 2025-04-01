@@ -30,42 +30,50 @@ mod catalog {
 
 /// Pracstro provides a way to do this, but that isn't functional in a lot of contexts
 mod timestep {
-	use pracstro::time;
     use chrono::prelude::*;
+    use pracstro::time;
     #[derive(Copy, Clone, Debug, PartialEq)]
-	pub enum Step {
-		S(f64),
-		M(chrono::Months),
-		Y(i32),
-	}
-	pub fn step_forward_date(d: time::Date, s: Step) -> time::Date {
-		match s {
-			Step::S(sec) => time::Date::from_julian(d.julian() + (sec / 86400.0)),
-			Step::M(m) => time::Date::from_unix((DateTime::from_timestamp(d.unix() as i64, 0).unwrap() + m).timestamp() as f64),
-			Step::Y(m) => {
-				let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
-				time::Date::from_unix(dt.with_year(dt.year() + m).expect("Bad time").timestamp() as f64)
-			},
-		}
-	}
-	pub fn step_back_date(d: time::Date, s: Step) -> time::Date {
-		match s {
-			Step::S(sec) => time::Date::from_julian(d.julian() - (sec / 86400.0)),
-			Step::M(m) => time::Date::from_unix((DateTime::from_timestamp(d.unix() as i64, 0).unwrap() - m).timestamp() as f64),
-			Step::Y(m) => {
-				let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
-				time::Date::from_unix(dt.with_year(dt.year() - m).expect("Bad time").timestamp() as f64)
-			},
-		}
-	}
+    pub enum Step {
+        S(f64),
+        M(chrono::Months),
+        Y(i32),
+    }
+    pub fn step_forward_date(d: time::Date, s: Step) -> time::Date {
+        match s {
+            Step::S(sec) => time::Date::from_julian(d.julian() + (sec.abs() / 86400.0)),
+            Step::M(m) => time::Date::from_unix(
+                (DateTime::from_timestamp(d.unix() as i64, 0).unwrap() + m).timestamp() as f64,
+            ),
+            Step::Y(m) => {
+                let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
+                time::Date::from_unix(
+                    dt.with_year(dt.year() + m).expect("Bad time").timestamp() as f64
+                )
+            }
+        }
+    }
+    pub fn step_back_date(d: time::Date, s: Step) -> time::Date {
+        match s {
+            Step::S(sec) => time::Date::from_julian(d.julian() - (sec.abs() / 86400.0)),
+            Step::M(m) => time::Date::from_unix(
+                (DateTime::from_timestamp(d.unix() as i64, 0).unwrap() - m).timestamp() as f64,
+            ),
+            Step::Y(m) => {
+                let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
+                time::Date::from_unix(
+                    dt.with_year(dt.year() - m).expect("Bad time").timestamp() as f64
+                )
+            }
+        }
+    }
 }
 
 mod parse {
     use crate::catalog;
+    use crate::timestep;
     use crate::Property;
     use chrono::prelude::*;
     use pracstro::time;
-    use crate::timestep;
 
     fn suffix_num(s: &str, j: &str) -> Option<f64> {
         s.strip_suffix(j)?.parse::<f64>().ok()
@@ -126,14 +134,17 @@ mod parse {
         let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if s == "now" {
             Ok(time::Date::now())
-        }
-        else if s.starts_with("-") {
-        	Ok(timestep::step_back_date(time::Date::now(), step(s.strip_prefix("-").ok_or("Bad prefix")?)?))
-        }
-        else if s.starts_with("+") {
-        	Ok(timestep::step_forward_date(time::Date::now(), step(s.strip_prefix("+").ok_or("Bad prefix")?)?))
-        }
-        else if s.starts_with("@") {
+        } else if s.starts_with("-") {
+            Ok(timestep::step_back_date(
+                time::Date::now(),
+                step(s.strip_prefix("-").ok_or("Bad prefix")?)?,
+            ))
+        } else if s.starts_with("+") {
+            Ok(timestep::step_forward_date(
+                time::Date::now(),
+                step(s.strip_prefix("+").ok_or("Bad prefix")?)?,
+            ))
+        } else if s.starts_with("@") {
             Ok(time::Date::from_unix(
                 s.strip_prefix("@")
                     .ok_or("")?
@@ -274,10 +285,10 @@ mod query {
     ) -> Result<Vec<Value>, &'static str> {
         Ok(proplist
             .iter()
-            .map(|prop|
-                    property_of(object, prop.clone(), &rf)
-                        .unwrap_or_else(|e| panic!("Error on property {prop}: {e}")),
-            )
+            .map(|prop| {
+                property_of(object, prop.clone(), &rf)
+                    .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
+            })
             .collect())
     }
 }

@@ -87,13 +87,15 @@ fn json_init() {
     print!("{{ \"q\": [");
 }
 fn json_q(rs: Vec<Value>) {
-	print!("[");
+    print!("[");
     rs.iter().for_each(|x| print!("{:#},", x));
     print!("\"endq\" ],");
 }
 fn json_eq(rs: Vec<Value>, nm: &[Property], d: time::Date) {
     print!("{{ \"timestamp\": {},", d.unix());
-    rs.iter().enumerate().for_each(|(n, x)| print!("\"{}\": {:#},", nm[n], x));
+    rs.iter()
+        .enumerate()
+        .for_each(|(n, x)| print!("\"{}\": {:#},", nm[n], x));
     print!("\"isq\": true }},");
 }
 fn json_footer() {
