@@ -117,7 +117,7 @@ impl fmt::Display for Value {
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
-                	let (lat, long) = rf.latlong.unwrap();
+                    let (lat, long) = rf.latlong.unwrap();
                     let d = c.horizon(rf.date, rf.date.time(), lat, long);
                     write!(
                         f,
@@ -138,7 +138,13 @@ impl fmt::Display for Value {
                 Value::Phase(pa, PhaseView::Default(n)) => {
                     let ilf = (1.0 - pa.cos()) / 2.0;
                     let pi = phaseidx(ilf, *pa);
-                    write!(f, "{} {} ({:2.1}%)", if *n { EMOJIS[pi] } else { SEMOJI[pi] }, PNAMES[pi], ilf * 100.0)
+                    write!(
+                        f,
+                        "{} {} ({:2.1}%)",
+                        if *n { EMOJIS[pi] } else { SEMOJI[pi] },
+                        PNAMES[pi],
+                        ilf * 100.0
+                    )
                 }
                 Value::Phase(pa, PhaseView::Nemoji) => {
                     write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
@@ -179,7 +185,7 @@ impl fmt::Display for Value {
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
-                	let (lat, long) = rf.latlong.unwrap();
+                    let (lat, long) = rf.latlong.unwrap();
                     let d = c.horizon(rf.date, rf.date.time(), lat, long);
                     write!(
                         f,
