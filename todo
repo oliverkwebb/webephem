@@ -9,6 +9,11 @@ Bugs/Internal:
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
 Features:
+- [*] Ephemeris Generation and relative times
+ - [*] relative ephemeris start/end dates (i.e. -1w,1d,+1w)
+ - [*] Better Working Negative Time Steps (Maybe chrono can help?)
+ - [*] Negative checks in ephemeris generation
+- [*] Shorten Distance Formatting
 - [ ] Clap-related plumbing
   - [*] Help text
   - [*] Verify catalog objects and properties before runtime
@@ -18,14 +23,8 @@ Features:
     - [ ] Merge -l and -L into -l lat,long
     - [ ] latlong accept no suffix numbers
     - [ ] Error on lati > 90d
-- [ ] Ephemeris Generation and relative times
- - [ ] relative ephemeris start/end dates (i.e. -1w,1d,+1w)
- - [ ] Better Working Negative Time Steps (Maybe chrono can help?)
- - [ ] Negative checks in ephemeris generation
 - [ ] Full readme with examples
-- [ ] (?) JPL Ephemeris Format Output
-- [ ] Shorten Distance Formatting
-- [ ] Calculations
+- [ ] Moar Calculations
  - [ ] add minor planets and other solar objects
  - [ ] add stars (star catalog data where?)
  - [ ] Rise and set time properties

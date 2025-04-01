@@ -28,11 +28,44 @@ mod catalog {
     }
 }
 
+/// Pracstro provides a way to do this, but that isn't functional in a lot of contexts
+mod timestep {
+	use pracstro::time;
+    use chrono::prelude::*;
+    #[derive(Copy, Clone, Debug, PartialEq)]
+	pub enum Step {
+		S(f64),
+		M(chrono::Months),
+		Y(i32),
+	}
+	pub fn step_forward_date(d: time::Date, s: Step) -> time::Date {
+		match s {
+			Step::S(sec) => time::Date::from_julian(d.julian() + (sec / 86400.0)),
+			Step::M(m) => time::Date::from_unix((DateTime::from_timestamp(d.unix() as i64, 0).unwrap() + m).timestamp() as f64),
+			Step::Y(m) => {
+				let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
+				time::Date::from_unix(dt.with_year(dt.year() + m).expect("Bad time").timestamp() as f64)
+			},
+		}
+	}
+	pub fn step_back_date(d: time::Date, s: Step) -> time::Date {
+		match s {
+			Step::S(sec) => time::Date::from_julian(d.julian() - (sec / 86400.0)),
+			Step::M(m) => time::Date::from_unix((DateTime::from_timestamp(d.unix() as i64, 0).unwrap() - m).timestamp() as f64),
+			Step::Y(m) => {
+				let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
+				time::Date::from_unix(dt.with_year(dt.year() - m).expect("Bad time").timestamp() as f64)
+			},
+		}
+	}
+}
+
 mod parse {
     use crate::catalog;
     use crate::Property;
     use chrono::prelude::*;
     use pracstro::time;
+    use crate::timestep;
 
     fn suffix_num(s: &str, j: &str) -> Option<f64> {
         s.strip_suffix(j)?.parse::<f64>().ok()
@@ -59,28 +92,28 @@ mod parse {
     }
 
     /// A step in time, returns (years, months, days, hours, minutes, seconds)
-    pub fn step(sm: &str) -> Result<time::TimeStep, &'static str> {
+    pub fn step(sm: &str) -> Result<timestep::Step, &'static str> {
         let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if let Some(n) = suffix_num(s, "y") {
-            Ok(time::TimeStep::from((n, 0.0, 0.0, 0.0, 0.0, 0.0)))
+            Ok(timestep::Step::Y(n as i32))
         } else if let Some(n) = suffix_num(s, "mon") {
-            Ok(time::TimeStep::from((0.0, n, 0.0, 0.0, 0.0, 0.0)))
+            Ok(timestep::Step::M(chrono::Months::new(n as u32)))
         } else if let Some(n) = suffix_num(s, "w") {
-            Ok(time::TimeStep::from((0.0, 0.0, n * 7.0, 0.0, 0.0, 0.0)))
+            Ok(timestep::Step::S(n * 7.0 * 86400.0))
         } else if let Some(n) = suffix_num(s, "d") {
-            Ok(time::TimeStep::from((0.0, 0.0, n, 0.0, 0.0, 0.0)))
+            Ok(timestep::Step::S(n * 86400.0))
         } else if let Some(n) = suffix_num(s, "h") {
-            Ok(time::TimeStep::from((0.0, 0.0, 0.0, n, 0.0, 0.0)))
+            Ok(timestep::Step::S(n * 3600.0))
         } else if let Some(n) = suffix_num(s, "min") {
-            Ok(time::TimeStep::from((0.0, 0.0, 0.0, 0.0, n, 0.0)))
+            Ok(timestep::Step::S(n * 60.0))
         } else if let Some(n) = suffix_num(s, "s") {
-            Ok(time::TimeStep::from((0.0, 0.0, 0.0, 0.0, 0.0, n)))
+            Ok(timestep::Step::S(n))
         } else {
             Err("Bad interval")
         }
     }
 
-    pub fn ephemq(s: &str) -> Result<(time::Date, time::TimeStep, time::Date), &'static str> {
+    pub fn ephemq(s: &str) -> Result<(time::Date, timestep::Step, time::Date), &'static str> {
         let mut eq = s.split(',');
         let start = eq.next().ok_or("Bad CSV")?;
         let ste = eq.next().ok_or("Bad CSV")?;
@@ -93,7 +126,14 @@ mod parse {
         let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
         if s == "now" {
             Ok(time::Date::now())
-        } else if s.starts_with("@") {
+        }
+        else if s.starts_with("-") {
+        	Ok(timestep::step_back_date(time::Date::now(), step(s.strip_prefix("-").ok_or("Bad prefix")?)?))
+        }
+        else if s.starts_with("+") {
+        	Ok(timestep::step_forward_date(time::Date::now(), step(s.strip_prefix("+").ok_or("Bad prefix")?)?))
+        }
+        else if s.starts_with("@") {
             Ok(time::Date::from_unix(
                 s.strip_prefix("@")
                     .ok_or("")?
@@ -298,12 +338,12 @@ fn main() {
     (formatter.start)();
 
     if let Some((start, step, end)) =
-        matches.get_one::<(time::Date, time::TimeStep, time::Date)>("ephem")
+        matches.get_one::<(time::Date, timestep::Step, time::Date)>("ephem")
     {
         myrf.date = *start;
         (formatter.propheader)(&propl, myrf.date);
         while myrf.date.julian() < end.julian() {
-            myrf.date = myrf.date + step.clone();
+            myrf.date = timestep::step_forward_date(myrf.date, *step);
             (formatter.ephemq)(q(myrf), &propl, myrf.date);
         }
     } else {

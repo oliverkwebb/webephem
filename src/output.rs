@@ -19,8 +19,9 @@ pub fn nop() {}
 pub fn nop_fa(_: &[Property], _: time::Date) {}
 
 fn term_proph(rs: &[Property], _: time::Date) {
+    print!("{:=<1$}\n", "", 29 * rs.len() + 22);
     print!("{:^22}", "Date");
-    rs.iter().for_each(|x| print!("{:^29}", x));
+    rs.iter().for_each(|x| print!("{:^29}", x.to_string()));
     print!("\n{:=<1$}\n", "", 29 * rs.len() + 22);
 }
 fn term_q(rs: Vec<Value>) {

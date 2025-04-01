@@ -103,7 +103,13 @@ impl fmt::Display for Value {
                     let (h, m, s) = p.clock();
                     write!(f, "{:02}h{:02}m{:02}s", h, m, s.trunc())
                 }
-                Value::Dist(d) => write!(f, "{} AU", d),
+                Value::Dist(d) => {
+                	match d {
+                		0.0..0.003342293561 => write!(f, "{:.1} km", d * 149597870.7),
+                		20000.0.. => write!(f, "{:.2} ly", d / 63241.07708),
+                		_ => write!(f, "{:.2} AU", d),
+                	}
+                },
                 Value::Crd(c, CrdView::Equatorial) => {
                     let d = c.equatorial();
                     write!(
@@ -164,7 +170,7 @@ impl fmt::Display for Value {
                     let (h, m, s) = p.clock();
                     write!(f, "\"{:02}h{:02}m{:02}s\"", h, m, s.trunc())
                 }
-                Value::Dist(d) => write!(f, "{} AU", d),
+                Value::Dist(d) => write!(f, "{}", d),
                 Value::Crd(c, CrdView::Equatorial) => {
                     let d = c.equatorial();
                     write!(
@@ -244,7 +250,7 @@ impl fmt::Display for Property {
                 Property::Equatorial => "Coordinates (RA/De)",
                 Property::Horizontal => "Coordinates (Azi/Alt)",
                 Property::Ecliptic => "Coordinates (Ecliptic)",
-                Property::Distance => "Distance (AU)",
+                Property::Distance => "Distance",
                 Property::Magnitude => "Magnitude",
                 Property::PhaseDefault => "Phase",
                 Property::PhaseEmoji => "Phase Emoji",
