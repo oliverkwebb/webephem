@@ -25,6 +25,8 @@ pub fn property(sm: &str) -> Result<Property, &'static str> {
         "phasename" => Ok(Property::PhaseName),
         "angdia" => Ok(Property::AngDia),
         "phaseprecent" | "illumfrac" => Ok(Property::IllumFrac),
+        "rise" => Ok(Property::Rise),
+        "set" => Ok(Property::Set),
         _ => Err("Unknown Property"),
     }
 }

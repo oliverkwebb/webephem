@@ -26,8 +26,8 @@ Features:
 - [ ] Full readme with examples
 - [ ](?)  Anstyle formatted terminal tables
 - [ ] Moar Calculations
- - [ ] add minor planets and other solar objects
+ - [*] Rise and set time properties
+ - [ ] Find good sunrise/sunset algorithm
  - [ ] add stars (star catalog data where?)
- - [ ] Rise and set time properties
-   - [ ] Find good sunrise/sunset algorithm
+ - [ ] add minor planets and other solar objects
  - [ ] Binary Operators between objects (Angle Between, Distance between)

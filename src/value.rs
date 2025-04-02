@@ -9,8 +9,7 @@ pub struct RefFrame {
 #[derive(Debug, PartialEq, Clone)]
 pub enum PhaseView {
     Default(bool),
-    Nemoji,
-    Semoji,
+    Emoji(bool),
     Illumfrac,
     PhaseName,
 }
@@ -45,6 +44,7 @@ pub enum Value {
     Num(f64),
     Dist(f64),
     Phase(time::Period, PhaseView),
+    RsTime(Option<time::Date>),
     // Celestial Objects
     Obj(CelObj),
 }
@@ -146,10 +146,10 @@ impl fmt::Display for Value {
                         ilf * 100.0
                     )
                 }
-                Value::Phase(pa, PhaseView::Nemoji) => {
+                Value::Phase(pa, PhaseView::Emoji(true)) => {
                     write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
-                Value::Phase(pa, PhaseView::Semoji) => {
+                Value::Phase(pa, PhaseView::Emoji(false)) => {
                     write!(f, "{}", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Phase(pa, PhaseView::Illumfrac) => {
@@ -160,10 +160,32 @@ impl fmt::Display for Value {
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
                 Value::Obj(_p) => write!(f, "Celestial Object"),
+                Value::RsTime(d) => {
+                    if d.is_none() {
+                        write!(f, "none")
+                    } else {
+                        write!(
+                            f,
+                            "{}",
+                            DateTime::<Local>::from(
+                                DateTime::from_timestamp(d.unwrap().unix() as i64, 0)
+                                    .expect("Failed to Format Date")
+                            )
+                            .format("%H:%M")
+                        )
+                    }
+                }
             }
         } else {
             match self {
                 Value::Date(d) => write!(f, "{}", d.unix()),
+                Value::RsTime(d) => {
+                    if d.is_none() {
+                        write!(f, "none")
+                    } else {
+                        write!(f, "{}", d.unwrap().unix())
+                    }
+                }
                 Value::Per(p, PerView::Angle) => {
                     write!(f, "{:.5}", p.degrees())
                 }
@@ -214,10 +236,10 @@ impl fmt::Display for Value {
                         ilf * 100.0
                     )
                 }
-                Value::Phase(pa, PhaseView::Nemoji) => {
+                Value::Phase(pa, PhaseView::Emoji(true)) => {
                     write!(f, "\"{}\"", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
-                Value::Phase(pa, PhaseView::Semoji) => {
+                Value::Phase(pa, PhaseView::Emoji(false)) => {
                     write!(f, "\"{}\"", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Phase(pa, PhaseView::Illumfrac) => {
@@ -245,6 +267,8 @@ pub enum Property {
     PhaseEmoji,
     AngDia,
     IllumFrac,
+    Rise,
+    Set,
 }
 impl fmt::Display for Property {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -262,6 +286,8 @@ impl fmt::Display for Property {
                 Property::PhaseName => "Phase Name",
                 Property::IllumFrac => "Illuminated Frac.",
                 Property::AngDia => "Angular Diameter",
+                Property::Rise => "Rise Time",
+                Property::Set => "Set Time",
             }
         )
     }

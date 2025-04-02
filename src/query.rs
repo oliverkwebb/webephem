@@ -1,6 +1,5 @@
 use crate::value::*;
-use crate::Property;
-use pracstro::{moon, sol};
+use pracstro::{moon, sol, time};
 
 pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'static str> {
     fn hemisphere(ll: Option<(pracstro::time::Period, pracstro::time::Period)>) -> bool {
@@ -36,6 +35,30 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             };
             Ok(Value::Crd(p, CrdView::Ecliptic(rf.date)))
         }
+        (Property::Rise, _) => {
+            if rf.latlong.is_none() {
+                return Err("Need to specify a lat/long with -l");
+            };
+            let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
+                panic!();
+            };
+            match p.riseset(rf.date, rf.latlong.unwrap().0, rf.latlong.unwrap().1) {
+                Some((x, _)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, x)))),
+                None => Ok(Value::RsTime(None)),
+            }
+        }
+        (Property::Set, _) => {
+            if rf.latlong.is_none() {
+                return Err("Need to specify a lat/long with -l");
+            };
+            let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
+                panic!();
+            };
+            match p.riseset(rf.date, rf.latlong.unwrap().0, rf.latlong.unwrap().1) {
+                Some((_, y)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, y)))),
+                None => Ok(Value::RsTime(None)),
+            }
+        }
         (Property::Distance, CelObj::Planet(p)) => Ok(Value::Dist(p.distance(rf.date))),
         (Property::Distance, CelObj::Sun) => Ok(Value::Dist(sol::SUN.distance(rf.date))),
         (Property::Distance, CelObj::Moon) => Ok(Value::Dist(moon::MOON.distance(rf.date))),
@@ -57,9 +80,9 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             };
             // The default emojis for people who don't specify a latitude are the northern ones
             if hemisphere(rf.latlong) {
-                Ok(Value::Phase(p, PhaseView::Nemoji))
+                Ok(Value::Phase(p, PhaseView::Emoji(true)))
             } else {
-                Ok(Value::Phase(p, PhaseView::Semoji))
+                Ok(Value::Phase(p, PhaseView::Emoji(false)))
             }
         }
         (Property::PhaseName, _) => {
