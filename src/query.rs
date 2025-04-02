@@ -1,5 +1,44 @@
 use crate::value::*;
 use pracstro::{moon, sol, time};
+use std::fmt;
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum Property {
+    Equatorial,
+    Horizontal,
+    Ecliptic,
+    Distance,
+    Magnitude,
+    PhaseDefault,
+    PhaseName,
+    PhaseEmoji,
+    AngDia,
+    IllumFrac,
+    Rise,
+    Set,
+}
+impl fmt::Display for Property {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Property::Equatorial => "Coordinates (RA/De)",
+                Property::Horizontal => "Coordinates (Azi/Alt)",
+                Property::Ecliptic => "Coordinates (Ecliptic)",
+                Property::Distance => "Distance",
+                Property::Magnitude => "Magnitude",
+                Property::PhaseDefault => "Phase",
+                Property::PhaseEmoji => "Phase Emoji",
+                Property::PhaseName => "Phase Name",
+                Property::IllumFrac => "Illuminated Frac.",
+                Property::AngDia => "Angular Diameter",
+                Property::Rise => "Rise Time",
+                Property::Set => "Set Time",
+            }
+        )
+    }
+}
 
 pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'static str> {
     fn hemisphere(ll: Option<(pracstro::time::Period, pracstro::time::Period)>) -> bool {
@@ -97,10 +136,10 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             };
             Ok(Value::Phase(p, PhaseView::Illumfrac))
         }
-        (Property::AngDia, CelObj::Planet(p)) => Ok(Value::Per(p.angdia(rf.date), PerView::Angle)),
-        (Property::AngDia, CelObj::Sun) => Ok(Value::Per(sol::SUN.angdia(rf.date), PerView::Angle)),
+        (Property::AngDia, CelObj::Planet(p)) => Ok(Value::Ang(p.angdia(rf.date), AngView::Angle)),
+        (Property::AngDia, CelObj::Sun) => Ok(Value::Ang(sol::SUN.angdia(rf.date), AngView::Angle)),
         (Property::AngDia, CelObj::Moon) => {
-            Ok(Value::Per(moon::MOON.angdia(rf.date), PerView::Angle))
+            Ok(Value::Ang(moon::MOON.angdia(rf.date), AngView::Angle))
         }
     }
 }

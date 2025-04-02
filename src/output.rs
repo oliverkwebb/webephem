@@ -1,3 +1,4 @@
+use crate::query::Property;
 use crate::value::*;
 use pracstro::time;
 
@@ -6,7 +7,7 @@ pub struct Driver {
     /// Starting information
     pub start: fn() -> (),
     /// Headers for columns, usually
-    pub propheader: fn(&[Property], time::Date) -> (),
+    pub propheader: fn(&[Property]) -> (),
     /// The formatting in a normal query
     pub query: fn(Vec<Value>) -> (),
     /// The formatting in a ephemeris query
@@ -16,9 +17,9 @@ pub struct Driver {
 }
 
 pub fn nop() {}
-pub fn nop_fa(_: &[Property], _: time::Date) {}
+pub fn nop_fa(_: &[Property]) {}
 
-fn term_proph(rs: &[Property], _: time::Date) {
+fn term_proph(rs: &[Property]) {
     println!("{:=<1$}", "", 29 * rs.len() + 22);
     print!("{:^22}", "Date");
     rs.iter().for_each(|x| print!("{:^29}", x.to_string()));
@@ -46,7 +47,7 @@ pub const TERM: Driver = Driver {
     footer: nop,
 };
 
-fn csv_proph(rs: &[Property], _d: time::Date) {
+fn csv_proph(rs: &[Property]) {
     println!(
         "Date,{}",
         rs.iter()

@@ -29,7 +29,7 @@ pub enum CelObj {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum PerView {
+pub enum AngView {
     Angle,
     Latitude,
     Time,
@@ -37,16 +37,13 @@ pub enum PerView {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
-    // Primatives
     Date(time::Date),
-    Per(time::Period, PerView),
+    Ang(time::Period, AngView),
     Crd(coord::Coord, CrdView),
     Num(f64),
     Dist(f64),
     Phase(time::Period, PhaseView),
     RsTime(Option<time::Date>),
-    // Celestial Objects
-    Obj(CelObj),
 }
 
 impl fmt::Display for Value {
@@ -89,16 +86,16 @@ impl fmt::Display for Value {
                     )
                     .format("%Y-%m-%dT%T")
                 ),
-                Value::Per(p, PerView::Angle) => {
+                Value::Ang(p, AngView::Angle) => {
                     let (d, m, s) = p.degminsec();
                     write!(f, "{:02}°{:02}′{:02.1}″", d, m, s)
                 }
-                Value::Per(p, PerView::Latitude) => {
+                Value::Ang(p, AngView::Latitude) => {
                     let (d, m, s) = p.to_latitude().degminsec();
                     write!(f, "{:+02}°{:02}′{:02.1}″", d, m, s)
                 }
-                //Value::Per(p, PerView::Raw) => write!(f, "{:.5}", p.degrees()),
-                Value::Per(p, PerView::Time) => {
+                //Value::Per(p, AngView::Raw) => write!(f, "{:.5}", p.degrees()),
+                Value::Ang(p, AngView::Time) => {
                     let (h, m, s) = p.clock();
                     write!(f, "{:02}h{:02}m{:02}s", h, m, s.trunc())
                 }
@@ -112,8 +109,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "{} {}",
-                        Value::Per(d.0, PerView::Time),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Time),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
@@ -122,8 +119,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "{} {}",
-                        Value::Per(d.0, PerView::Angle),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Angle),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Crd(c, CrdView::Ecliptic(d)) => {
@@ -131,8 +128,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "{} {}",
-                        Value::Per(d.0, PerView::Angle),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Angle),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Phase(pa, PhaseView::Default(n)) => {
@@ -159,7 +156,6 @@ impl fmt::Display for Value {
                     write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
-                Value::Obj(_p) => write!(f, "Celestial Object"),
                 Value::RsTime(d) => {
                     if d.is_none() {
                         write!(f, "none")
@@ -186,13 +182,13 @@ impl fmt::Display for Value {
                         write!(f, "{}", d.unwrap().unix())
                     }
                 }
-                Value::Per(p, PerView::Angle) => {
+                Value::Ang(p, AngView::Angle) => {
                     write!(f, "{:.5}", p.degrees())
                 }
-                Value::Per(p, PerView::Latitude) => {
+                Value::Ang(p, AngView::Latitude) => {
                     write!(f, "{:.5}", p.to_latitude().degrees())
                 }
-                Value::Per(p, PerView::Time) => {
+                Value::Ang(p, AngView::Time) => {
                     let (h, m, s) = p.clock();
                     write!(f, "\"{:02}h{:02}m{:02}s\"", h, m, s.trunc())
                 }
@@ -202,8 +198,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "[{:#}, {:#}]",
-                        Value::Per(d.0, PerView::Time),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Time),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Crd(c, CrdView::Horizontal(rf)) => {
@@ -212,8 +208,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "[{:#}, {:#}]",
-                        Value::Per(d.0, PerView::Angle),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Angle),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Crd(c, CrdView::Ecliptic(d)) => {
@@ -221,8 +217,8 @@ impl fmt::Display for Value {
                     write!(
                         f,
                         "[{:#}, {:#}]",
-                        Value::Per(d.0, PerView::Angle),
-                        Value::Per(d.1, PerView::Latitude)
+                        Value::Ang(d.0, AngView::Angle),
+                        Value::Ang(d.1, AngView::Latitude)
                     )
                 }
                 Value::Phase(pa, PhaseView::Default(h)) => {
@@ -249,46 +245,7 @@ impl fmt::Display for Value {
                     write!(f, "\"{}\"", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
-                Value::Obj(_p) => write!(f, "\"Celestial Object\""),
             }
         }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub enum Property {
-    Equatorial,
-    Horizontal,
-    Ecliptic,
-    Distance,
-    Magnitude,
-    PhaseDefault,
-    PhaseName,
-    PhaseEmoji,
-    AngDia,
-    IllumFrac,
-    Rise,
-    Set,
-}
-impl fmt::Display for Property {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Property::Equatorial => "Coordinates (RA/De)",
-                Property::Horizontal => "Coordinates (Azi/Alt)",
-                Property::Ecliptic => "Coordinates (Ecliptic)",
-                Property::Distance => "Distance",
-                Property::Magnitude => "Magnitude",
-                Property::PhaseDefault => "Phase",
-                Property::PhaseEmoji => "Phase Emoji",
-                Property::PhaseName => "Phase Name",
-                Property::IllumFrac => "Illuminated Frac.",
-                Property::AngDia => "Angular Diameter",
-                Property::Rise => "Rise Time",
-                Property::Set => "Set Time",
-            }
-        )
     }
 }

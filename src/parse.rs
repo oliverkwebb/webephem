@@ -1,6 +1,6 @@
 use crate::catalog;
+use crate::query::Property;
 use crate::timestep;
-use crate::Property;
 use chrono::prelude::*;
 use pracstro::time;
 
@@ -35,7 +35,7 @@ pub fn property(sm: &str) -> Result<Property, &'static str> {
 pub fn step(sm: &str) -> Result<timestep::Step, &'static str> {
     let s = &sm.to_lowercase(); // This can usually be guaranteed, except in argument parsing
     if let Some(n) = suffix_num(s, "y") {
-        Ok(timestep::Step::Y(n as i32))
+        Ok(timestep::Step::M(chrono::Months::new(n as u32 * 12)))
     } else if let Some(n) = suffix_num(s, "mon") {
         Ok(timestep::Step::M(chrono::Months::new(n as u32)))
     } else if let Some(n) = suffix_num(s, "w") {

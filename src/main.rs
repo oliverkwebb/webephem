@@ -38,7 +38,6 @@ mod timestep {
     pub enum Step {
         S(f64),
         M(chrono::Months),
-        Y(i32),
     }
     pub fn step_forward_date(d: time::Date, s: Step) -> time::Date {
         match s {
@@ -46,12 +45,6 @@ mod timestep {
             Step::M(m) => time::Date::from_unix(
                 (DateTime::from_timestamp(d.unix() as i64, 0).unwrap() + m).timestamp() as f64,
             ),
-            Step::Y(m) => {
-                let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
-                time::Date::from_unix(
-                    dt.with_year(dt.year() + m).expect("Bad time").timestamp() as f64
-                )
-            }
         }
     }
     pub fn step_back_date(d: time::Date, s: Step) -> time::Date {
@@ -60,12 +53,6 @@ mod timestep {
             Step::M(m) => time::Date::from_unix(
                 (DateTime::from_timestamp(d.unix() as i64, 0).unwrap() - m).timestamp() as f64,
             ),
-            Step::Y(m) => {
-                let dt = DateTime::from_timestamp(d.unix() as i64, 0).expect("Bad time");
-                time::Date::from_unix(
-                    dt.with_year(dt.year() - m).expect("Bad time").timestamp() as f64
-                )
-            }
         }
     }
 }
@@ -106,8 +93,8 @@ fn main() {
     };
 
     let obj = matches.get_one::<CelObj>("object").unwrap();
-    let propl: Vec<Property> = matches
-        .get_many::<Property>("properties")
+    let propl: Vec<query::Property> = matches
+        .get_many::<query::Property>("properties")
         .unwrap()
         .cloned()
         .collect();
@@ -122,7 +109,7 @@ fn main() {
         matches.get_one::<(time::Date, timestep::Step, time::Date)>("ephem")
     {
         myrf.date = *start;
-        (formatter.propheader)(&propl, myrf.date);
+        (formatter.propheader)(&propl);
         while myrf.date.julian() < end.julian() {
             (formatter.ephemq)(q(myrf), &propl, myrf.date);
             myrf.date = timestep::step_forward_date(myrf.date, *step);

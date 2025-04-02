@@ -1,15 +1,8 @@
 # deskephem - Modular CLI Astronomy
 
-```
-M""""""'YMM                   dP       MM""""""""`M          dP
-M  mmmm. `M                   88       MM  mmmmmmmM          88
-M  MMMMM  M .d8888b. .d8888b. 88  .dP  M`      MMMM 88d888b. 88d888b. .d8888b. 88d8b.d8b.
-M  MMMMM  M 88ooood8 Y8ooooo. 88888"   MM  MMMMMMMM 88'  `88 88'  `88 88ooood8 88'`88'`88
-M  MMMM' .M 88.  ...       88 88  `8b. MM  MMMMMMMM 88.  .88 88    88 88.  ... 88  88  88
-M       .MM `88888P' `88888P' dP   `YP MM        .M 88Y888P' dP    dP `88888P' dP  dP  dP
-MMMMMMMMMMM                            MMMMMMMMMMMM 88
-                                                    dP
-```
+[![crates.io](https://img.shields.io/crates/v/deskephem)](https://crates.io/crates/deskephem)
+[![License](https://img.shields.io/badge/license-0BSD-blue.svg)](https://raw.githubusercontent.com/oliverkwebb/deskephem/main/LICENSE)
+![GitHub last commit](https://img.shields.io/github/last-commit/oliverkwebb/deskephem)
 
 ```
 $ deskephem moon phase # Werewolf early warning system
@@ -31,14 +24,10 @@ deskephem is a CLI astronomy calculator for celestial objects such as the moon, 
 
 * Coordinates in the sky (equatorial, horizontal, ecliptic)
 * Phase (Emoji, Illuminated Fraction, Name)
+* Approximate Rise and Set times
 * Brightness (Magnitude)
 * Distance
 * Angular Size
-
-```
-$ deskephem mars illumfrac distance
-90.5 1.14 AU
-```
 
 It supports outputs in json, csv, and plain text. It can also generate tables of output:
 
