@@ -1,33 +1,28 @@
 Bugs/Internal:
 - [*] pre-1582 ephemeris goes into an infinite loop
-- [*] more helpful error messages
-- [*] split code up into multiple files
-- [*] -l -L fail on uppercase N/S/E/W
-- [*] refactor vec property code
-- [*] merge json printing and normal printing into one trait with alternate
-- [*] Southern Phase emojis
+ - [ ] ephem can still go into infinite loops aroun 1582
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
+ - [ ] timestep
+ - [ ] parse
+ - [ ] output
+ - [ ] query
+ - [ ] value
 Features:
-- [*] Ephemeris Generation and relative times
- - [*] relative ephemeris start/end dates (i.e. -1w,1d,+1w)
- - [*] Better Working Negative Time Steps (Maybe chrono can help?)
- - [*] Negative checks in ephemeris generation
-- [*] Shorten Distance Formatting
-- [*] Clap-related plumbing
-  - [*] Help text
-  - [*] Verify catalog objects and properties before runtime
-    - [*] Un-CSV the property list
-    - [*] Pre-parse and enumerate property names
-  - [*] Make lat/long an option instead of default 0
-    - [*] Merge -l and -L into -l lat,long
-    - [*] latlong accept no suffix numbers
-    - [*] Error on lati > 90d
-- [ ] Full readme with examples
+- [ ] **Full** readme with examples
 - [ ](?)  Anstyle formatted terminal tables
+- [ ](?)  Smart width formatting for term ephemeris (i.e. not always 30 characters wide)
 - [ ] Moar Calculations
+ - [*] Basic accounting for refraction
+   - [*] Note: This is a nightmare for altitudes below the horizon: 1.02/tan(x+(10.3/x+5.11))
  - [*] Rise and set time properties
- - [ ] Find good sunrise/sunset algorithm
+   - [ ] Do coordinate interpolation for {sun,moon}{rise,set}
+ - [ ] Basic accounting for precession
+   - [ ] Does this only matter for star data? The ephemeris stuff seems to handle it. Also NOT doing nutation
  - [ ] add stars (star catalog data where?)
+   - [ ] Star Cataloging is NOT ephemeris, but it'd be nice to have **some** stars
  - [ ] add minor planets and other solar objects
  - [ ] Binary Operators between objects (Angle Between, Distance between)
+ - [ ] Constellation bounds (i.e. "what constellation is this is")
+ - [ ](?) Some Deep Space Probes? (Dynamic objects)
+ - [ ](?) Moons for other planets?

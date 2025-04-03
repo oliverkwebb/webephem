@@ -209,7 +209,7 @@ impl fmt::Display for Value {
                         f,
                         "[{:#}, {:#}]",
                         Value::Ang(d.0, AngView::Angle),
-                        Value::Ang(d.1, AngView::Latitude)
+                        Value::Ang(d.1.refract(), AngView::Latitude)
                     )
                 }
                 Value::Crd(c, CrdView::Ecliptic(d)) => {

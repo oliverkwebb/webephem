@@ -64,13 +64,13 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
                 return Err("Need to specify a lat/long with -l");
             };
             let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
-                panic!();
+                unreachable!();
             };
             Ok(Value::Crd(p, CrdView::Horizontal(*rf)))
         }
         (Property::Ecliptic, _) => {
             let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
-                panic!();
+                unreachable!();
             };
             Ok(Value::Crd(p, CrdView::Ecliptic(rf.date)))
         }
@@ -79,7 +79,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
                 return Err("Need to specify a lat/long with -l");
             };
             let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
-                panic!();
+                unreachable!();
             };
             match p.riseset(rf.date, rf.latlong.unwrap().0, rf.latlong.unwrap().1) {
                 Some((x, _)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, x)))),
@@ -91,7 +91,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
                 return Err("Need to specify a lat/long with -l");
             };
             let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
-                panic!();
+                unreachable!();
             };
             match p.riseset(rf.date, rf.latlong.unwrap().0, rf.latlong.unwrap().1) {
                 Some((_, y)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, y)))),
@@ -115,7 +115,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
         )),
         (Property::PhaseEmoji, _) => {
             let Value::Phase(p, _) = property_of(obj, Property::PhaseDefault, rf)? else {
-                panic!();
+                unreachable!();
             };
             // The default emojis for people who don't specify a latitude are the northern ones
             if hemisphere(rf.latlong) {
@@ -126,13 +126,13 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
         }
         (Property::PhaseName, _) => {
             let Value::Phase(p, _) = property_of(obj, Property::PhaseDefault, rf)? else {
-                panic!();
+                unreachable!();
             };
             Ok(Value::Phase(p, PhaseView::PhaseName))
         }
         (Property::IllumFrac, _) => {
             let Value::Phase(p, _) = property_of(obj, Property::PhaseDefault, rf)? else {
-                panic!();
+                unreachable!();
             };
             Ok(Value::Phase(p, PhaseView::Illumfrac))
         }

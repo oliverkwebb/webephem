@@ -6,9 +6,11 @@ pub mod parse;
 pub mod query;
 pub mod value;
 
+/// Handles the reading and querying of the catalog of celestial objects
 mod catalog {
     use crate::value::*;
 
+    /// Creates the catalog as a hash table
     pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
         use pracstro::sol;
         std::collections::HashMap::from([
@@ -25,16 +27,27 @@ mod catalog {
         ])
     }
 
+    /// Gets an object from a catalog
     pub fn get(s: &str, catalog: &std::collections::HashMap<&str, CelObj>) -> Option<CelObj> {
         Some(catalog.get(s)?.clone())
     }
 }
 
-/// Pracstro provides a way to do this, but that isn't functional in a lot of contexts
+/// pracstro provides a way to do this, but that isn't functional in a lot of contexts
+///
+/// Used in ephemeris generation and date reading
 mod timestep {
     use chrono::prelude::*;
     use pracstro::time;
     #[derive(Copy, Clone, Debug, PartialEq)]
+    /// Most things can be represented as seconds or months
+    /// * 1 second: 1 second
+    /// * 1 minute: 60 seconds
+    /// * 1 hour: 3600 seconds
+    /// * 1 day: 86400 seconds
+    /// * 1 week: 604800 seconds
+    /// * 1 month: 1 month
+    /// * 1 year: 12 months
     pub enum Step {
         S(f64),
         M(chrono::Months),
