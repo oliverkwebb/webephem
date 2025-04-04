@@ -1,4 +1,3 @@
-use crate::catalog;
 use crate::query::Property;
 use crate::timestep;
 use chrono::prelude::*;
@@ -6,10 +5,6 @@ use pracstro::time;
 
 fn suffix_num(s: &str, j: &str) -> Option<f64> {
     s.strip_suffix(j)?.parse::<f64>().ok()
-}
-
-pub fn object(s: &str) -> Result<crate::value::CelObj, &'static str> {
-    catalog::get(&s.to_lowercase(), &catalog::read()).ok_or("No Catalog Object")
 }
 
 pub fn property(sm: &str) -> Result<Property, &'static str> {

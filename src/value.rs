@@ -1,3 +1,4 @@
+use crate::catalog;
 use pracstro::{coord, sol, time};
 use std::fmt;
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -26,6 +27,7 @@ pub enum CelObj {
     Planet(sol::Planet),
     Moon,
     Sun,
+    Star(catalog::Star),
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -59,6 +59,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             moon::MOON.location(rf.date),
             CrdView::Equatorial,
         )),
+        (Property::Equatorial, CelObj::Star(s)) => Ok(Value::Crd(s.loc_j2k, CrdView::Equatorial)),
         (Property::Horizontal, _) => {
             if rf.latlong.is_none() {
                 return Err("Need to specify a lat/long with -l");
@@ -101,14 +102,17 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
         (Property::Distance, CelObj::Planet(p)) => Ok(Value::Dist(p.distance(rf.date))),
         (Property::Distance, CelObj::Sun) => Ok(Value::Dist(sol::SUN.distance(rf.date))),
         (Property::Distance, CelObj::Moon) => Ok(Value::Dist(moon::MOON.distance(rf.date))),
+        (Property::Distance, CelObj::Star(s)) => {
+            Ok(Value::Dist((1.0 / (s.pi.degrees() * 3600.0)) * 206_265.0))
+        }
         (Property::Magnitude, CelObj::Planet(p)) => Ok(Value::Num(p.magnitude(rf.date))),
+        (Property::Magnitude, CelObj::Star(s)) => Ok(Value::Num(s.mag)),
         (Property::Magnitude, CelObj::Sun) => Ok(Value::Num(sol::SUN.magnitude(rf.date))),
         (Property::Magnitude, CelObj::Moon) => Ok(Value::Num(moon::MOON.magnitude(rf.date))),
         (Property::PhaseDefault, CelObj::Planet(p)) => Ok(Value::Phase(
             p.phaseangle(rf.date),
             PhaseView::Default(hemisphere(rf.latlong)),
         )),
-        (Property::PhaseDefault, CelObj::Sun) => Err("Can't get phase of the Sun"),
         (Property::PhaseDefault, CelObj::Moon) => Ok(Value::Phase(
             moon::MOON.phaseangle(rf.date),
             PhaseView::Default(hemisphere(rf.latlong)),
@@ -141,6 +145,8 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
         (Property::AngDia, CelObj::Moon) => {
             Ok(Value::Ang(moon::MOON.angdia(rf.date), AngView::Angle))
         }
+        (Property::PhaseDefault, _) => Err("Can't get phase of a star"),
+        (Property::AngDia, CelObj::Star(_)) => Err("Angular diameter of star not known"),
     }
 }
 

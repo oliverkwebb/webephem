@@ -1,37 +1,12 @@
 use pracstro::time;
 use value::*;
 
+/// Handles the reading and querying of the catalog of celestial objects
+pub mod catalog;
 pub mod output;
 pub mod parse;
 pub mod query;
 pub mod value;
-
-/// Handles the reading and querying of the catalog of celestial objects
-mod catalog {
-    use crate::value::*;
-
-    /// Creates the catalog as a hash table
-    pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
-        use pracstro::sol;
-        std::collections::HashMap::from([
-            ("sun", CelObj::Sun),
-            ("mercury", CelObj::Planet(sol::MERCURY)),
-            ("venus", CelObj::Planet(sol::VENUS)),
-            ("moon", CelObj::Moon),
-            ("mars", CelObj::Planet(sol::MARS)),
-            ("jupiter", CelObj::Planet(sol::JUPITER)),
-            ("saturn", CelObj::Planet(sol::SATURN)),
-            ("uranus", CelObj::Planet(sol::URANUS)),
-            ("neptune", CelObj::Planet(sol::NEPTUNE)),
-            ("pluto", CelObj::Planet(sol::PLUTO)),
-        ])
-    }
-
-    /// Gets an object from a catalog
-    pub fn get(s: &str, catalog: &std::collections::HashMap<&str, CelObj>) -> Option<CelObj> {
-        Some(catalog.get(s)?.clone())
-    }
-}
 
 /// pracstro provides a way to do this, but that isn't functional in a lot of contexts
 ///
@@ -72,6 +47,7 @@ mod timestep {
 
 fn main() {
     use clap::{arg, command};
+    let cat = catalog::read();
     let matches = command!()
     	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
         .arg(
@@ -90,7 +66,7 @@ fn main() {
                 .value_parser(["term", "csv", "json"])
                 .default_value("term"),
         )
-        .arg(arg!([object] "Celestial Object").required(true).value_parser(parse::object))
+        .arg(arg!([object] "Celestial Object").required(true).value_parser(move |s: &str| Ok::<value::CelObj, &'static str>(cat.get(s.to_lowercase().as_str()).ok_or("No Object in catalog")?.clone())))
         .arg(arg!([properties] ... "Properties").required(true).value_parser(parse::property))
         .get_matches();
 

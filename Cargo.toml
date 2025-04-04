@@ -12,4 +12,4 @@ repository = "https://github.com/oliverkwebb/deskephem"
 [dependencies]
 chrono = "0.4.40"
 clap = { version = "4.5.34", features = ["cargo"] }
-pracstro = "0.5.1"
+pracstro = "0.5.3"

@@ -225,9 +225,9 @@ checksum = "d75b0bedcc4fe52caa0e03d9f1151a323e4aa5e2d78ba3580400cd3c9e2bc4bc"
 
 [[package]]
 name = "pracstro"
-version = "0.5.1"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2e6d2a0310f2732eba17c2fab44687b4600f17a197ec2c3ab32216a6c90405f"
+checksum = "90784d809d6c4506de70865647d718eae9daf1e231125a497aade9072ddb2b0c"
 
 [[package]]
 name = "proc-macro2"
