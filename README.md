@@ -20,7 +20,7 @@ $ deskephem -d 1781-03-13 -l 53n,1.8w Uranus horiz magnitude # Location and brig
 278°45'42.91" 23°22'1.52" 5.60
 ```
 
-deskephem is a CLI astronomy calculator for celestial objects such as the moon, planets, and sun:
+deskephem is a CLI astronomy calculator for celestial objects such as the moon, planets, stars, and sun:
 
 * Coordinates in the sky (equatorial, horizontal, ecliptic)
 * Phase (Emoji, Illuminated Fraction, Name)
@@ -28,6 +28,8 @@ deskephem is a CLI astronomy calculator for celestial objects such as the moon, 
 * Brightness (Magnitude)
 * Distance
 * Angular Size
+
+It's catalog contains the moon, sun, planets, and about 100 common stars
 
 It supports outputs in json, csv, and plain text. It can also generate tables of output:
 

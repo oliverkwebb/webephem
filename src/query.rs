@@ -59,7 +59,11 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             moon::MOON.location(rf.date),
             CrdView::Equatorial,
         )),
-        (Property::Equatorial, CelObj::Star(s)) => Ok(Value::Crd(s.loc_j2k, CrdView::Equatorial)),
+        (Property::Equatorial, CelObj::Star(s)) => Ok(Value::Crd(
+            s.loc_j2k
+                .precess(time::Date::from_julian(2451545.0), rf.date),
+            CrdView::Equatorial,
+        )),
         (Property::Horizontal, _) => {
             if rf.latlong.is_none() {
                 return Err("Need to specify a lat/long with -l");

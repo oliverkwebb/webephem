@@ -18,7 +18,7 @@ Features:
    - [*] Note: This is a nightmare for altitudes below the horizon: 1.02/tan(x+(10.3/x+5.11))
  - [*] Rise and set time properties
    - [ ] Do coordinate interpolation for {sun,moon}{rise,set}
- - [ ] Basic accounting for precession
+ - [*] Basic accounting for precession
    - [ ] Does this only matter for star data? The ephemeris stuff seems to handle it. Also NOT doing nutation
  - [ ] add minor planets and other solar objects
  - [ ] Binary Operators between objects (Angle Between, Distance between)
