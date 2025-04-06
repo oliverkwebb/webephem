@@ -10,19 +10,16 @@ Bugs/Internal:
  - [ ] value
 Features:
 - [ ] **Full** readme with examples
+- [ ] Article on rust CLI astronomy
+- [ ] wasm bindings
 - [ ](?)  Anstyle formatted terminal tables
 - [ ](?)  Smart width formatting for term ephemeris (i.e. not always 30 characters wide)
 - [ ] Moar Calculations
- - [*] add stars from https://www.celestialprogramming.com/snippets/CommonStarNames.html
- - [*] Basic accounting for refraction
-   - [*] Note: This is a nightmare for altitudes below the horizon: 1.02/tan(x+(10.3/x+5.11))
  - [*] Rise and set time properties
    - [ ] Do coordinate interpolation for {sun,moon}{rise,set}
- - [*] Basic accounting for precession
-   - [ ] Does this only matter for star data? The ephemeris stuff seems to handle it. Also NOT doing nutation
- - [ ] add minor planets and other solar objects
- - [ ] Binary Operators between objects (Angle Between, Distance between)
- - [ ] Constellation bounds (i.e. "what constellation is this is")
+ - [ ](?) Binary Operators between objects (Angle Between, Distance between)
+ - [ ](?) add minor planets and other solar objects
+ - [ ](?) Constellation bounds (i.e. "what constellation is this is")
  - [ ](?) Some Deep Space Probes? (Dynamic objects)
  - [ ](?) Moons for other planets?
  - [ ](?) Viewing from other objects (Which entails converting EVERYTHING into 3d coords)

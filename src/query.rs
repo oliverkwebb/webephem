@@ -52,11 +52,16 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
         (Property::Equatorial, CelObj::Planet(p)) => {
             Ok(Value::Crd(p.location(rf.date), CrdView::Equatorial))
         }
-        (Property::Equatorial, CelObj::Sun) => {
-            Ok(Value::Crd(sol::SUN.location(rf.date), CrdView::Equatorial))
-        }
+        (Property::Equatorial, CelObj::Sun) => Ok(Value::Crd(
+            sol::SUN
+                .location(rf.date)
+                .precess(time::Date::from_julian(2451545.0), rf.date),
+            CrdView::Equatorial,
+        )),
         (Property::Equatorial, CelObj::Moon) => Ok(Value::Crd(
-            moon::MOON.location(rf.date),
+            moon::MOON
+                .location(rf.date)
+                .precess(time::Date::from_julian(2451545.0), rf.date),
             CrdView::Equatorial,
         )),
         (Property::Equatorial, CelObj::Star(s)) => Ok(Value::Crd(

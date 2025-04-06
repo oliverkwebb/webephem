@@ -15,6 +15,7 @@ pub struct Star {
 /// This operation takes about 500 µs on my machine
 pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
     use pracstro::sol;
+    use std::time::Instant;
 
     let mut cat = std::collections::HashMap::from([
         ("sun", CelObj::Sun),
@@ -29,23 +30,28 @@ pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
         ("pluto", CelObj::Planet(sol::PLUTO)),
     ]);
 
-    let stars = include_str!("dat/stars.csv");
-    for star in stars.lines().skip(1) {
-        let p: Vec<&str> = star.split(',').map(|x| x.trim()).collect();
-        cat.insert(
-            p[0].into(),
-            CelObj::Star(Star {
-                loc_j2k: coord::Coord::from_equatorial(
-                    time::Period::from_degrees(p[2].parse().unwrap()),
-                    time::Period::from_degrees(p[3].parse().unwrap()),
-                ),
-                mag: p[4].parse().unwrap(),
-                pi: time::Period::from_degrees(p[5].parse::<f64>().unwrap() / 3600_000.0),
-                pm_ra: time::Period::from_degrees(p[6].parse::<f64>().unwrap() / 3600_000.0),
-                pm_dec: time::Period::from_degrees(p[7].parse::<f64>().unwrap() / 3600_000.0),
-            }),
-        );
-    }
+    include_str!("dat/stars.csv")
+        .lines()
+        .skip(1)
+        .map(|star| {
+            let p: Vec<&str> = star.split(',').collect();
+            (
+                p[0],
+                CelObj::Star(Star {
+                    loc_j2k: coord::Coord::from_equatorial(
+                        time::Period::from_degrees(p[1].parse().unwrap()),
+                        time::Period::from_degrees(p[2].parse().unwrap()),
+                    ),
+                    mag: p[3].parse().unwrap(),
+                    pi: time::Period::from_degrees(p[4].parse::<f64>().unwrap() / 3600_000.0),
+                    pm_ra: time::Period::from_degrees(p[5].parse::<f64>().unwrap() / 3600_000.0),
+                    pm_dec: time::Period::from_degrees(p[6].parse::<f64>().unwrap() / 3600_000.0),
+                }),
+            )
+        })
+        .for_each(|(n, s)| {
+            cat.insert(n, s);
+        });
 
     cat
 }
