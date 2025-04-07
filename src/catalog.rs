@@ -5,9 +5,9 @@ use pracstro::{coord, time};
 pub struct Star {
     pub loc_j2k: coord::Coord,
     pub mag: f64,
-    pub pi: time::Period,
-    pub pm_ra: time::Period,
-    pub pm_dec: time::Period,
+    pub pi: time::Angle,
+    pub pm_ra: time::Angle,
+    pub pm_dec: time::Angle,
 }
 
 /// Creates the catalog as a hash table
@@ -15,7 +15,6 @@ pub struct Star {
 /// This operation takes about 500 µs on my machine
 pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
     use pracstro::sol;
-    use std::time::Instant;
 
     let mut cat = std::collections::HashMap::from([
         ("sun", CelObj::Sun),
@@ -39,13 +38,13 @@ pub fn read() -> std::collections::HashMap<&'static str, CelObj> {
                 p[0],
                 CelObj::Star(Star {
                     loc_j2k: coord::Coord::from_equatorial(
-                        time::Period::from_degrees(p[1].parse().unwrap()),
-                        time::Period::from_degrees(p[2].parse().unwrap()),
+                        time::Angle::from_degrees(p[1].parse().unwrap()),
+                        time::Angle::from_degrees(p[2].parse().unwrap()),
                     ),
                     mag: p[3].parse().unwrap(),
-                    pi: time::Period::from_degrees(p[4].parse::<f64>().unwrap() / 3600_000.0),
-                    pm_ra: time::Period::from_degrees(p[5].parse::<f64>().unwrap() / 3600_000.0),
-                    pm_dec: time::Period::from_degrees(p[6].parse::<f64>().unwrap() / 3600_000.0),
+                    pi: time::Angle::from_degrees(p[4].parse::<f64>().unwrap() / 3_600_000.0),
+                    pm_ra: time::Angle::from_degrees(p[5].parse::<f64>().unwrap() / 3_600_000.0),
+                    pm_dec: time::Angle::from_degrees(p[6].parse::<f64>().unwrap() / 3_600_000.0),
                 }),
             )
         })

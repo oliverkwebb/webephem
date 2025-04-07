@@ -28,6 +28,7 @@ deskephem is a CLI astronomy calculator for celestial objects such as the moon, 
 * Brightness (Magnitude)
 * Distance
 * Angular Size
+* Angles between other objects in the sky
 
 It's catalog contains the moon, sun, planets, and about 100 common stars
 
@@ -53,9 +54,53 @@ $ time deskephem -E 1600-01-01,1mon,9999-06-01 mars ecliptic # Query is ran ~100
 1.89 user 0.20 system
 ```
 
-# Usage
+deskephem is a wrapper around the [`pracstro`](https://github.com/oliverkwebb/pracstro) astronomy library
 
-In deskephem, a list of properties are queried from a celestial object.
-The result of this query depends on date (specified with `-d`) and coordinates (specified with `-l lat,long`).
-Tables of data based on time (Ephemeris) can be generated with (`-E [Start,Step,End]`). And data can be outputted
-in different ways based on the value of `-T` (by default, "term").
+# Parameters
+
+All input to deskephem is case insensitive
+
+Options:
+* Date: `-d [DATE]` (default: `now`)
+* Observer Latitude/Longitude: `-l [LAT,LONG]` (default: `none`)
+* Output format: `-T [FORMAT]` (default: `term`, options: `csv`, `json`, `term`)
+* Ephemeris generation: `-E start,step,end` (optional)
+
+Arguments:
+* Object being observed
+* Properties
+
+# Properties
+
+Equatorial Coordinates: `equ`, `equa`, `equatorial`
+Horizon Coordinates: `horiz`, `horizontal`
+Ecliptic Coordinates: `ecl`, `ecliptic`
+Distance: `dist`, `distance`
+(Brightness) Magnitude: `mag`, `magnitude`, `brightness`
+Phase Info: `phase`
+Phase Emoji: `phaseemoji`
+Phase Name; `phasename`
+Angular Diameter: `angdia`
+Illuminated Percent: `phaseprecent`, `illumfrac`
+Rise and set times: `rise`, `set`
+Angle between objects: `angbetween:{Object}`
+
+# Input formatting
+
+Dates:
+* Relative Dates: `+/-#y/mon/d/h/min/s` (ex. `+3mon`)
+* Time increments: `#y/mon/d/h/min/s` (ex. `1w`)
+* ISO format: `YYYY-MM-DD[THH:MM:SS]` (ex. `1970-01-01T14:40:25`, `2000-04-52`)
+* Unix dates: `@#` (ex. `@86400`)
+* Julian dates: `##j[d]` (ex. `2451545`)
+* Now: `now` (ex. `now`)
+
+Angles:
+* Lat/Long: `Angle,Angle` (ex. `0,0`, `30n,60w`)
+* Degrees: `###°/d[eg]` (ex. `45deg`)
+
+Epehmeris Queries: `Date (Start),Time Increment,Date (End)`
+
+Object:
+* Object name: `{name}` (ex. `moon`, `Sun`, `Arcturus`)
+* Raw coordinates: `latlong:{lat,long}` (ex. `latlong:0,45w`)

@@ -48,6 +48,7 @@ mod timestep {
 fn main() {
     use clap::{arg, command};
     let cat = catalog::read();
+    let ccheck = cat.clone();
     let matches = command!()
     	.help_template("{before-help}{name} ({version}) - {about-with-newline}\n{usage-heading} {usage}\n\n{all-args}{after-help}\n\nWritten by {author}")
         .arg(
@@ -66,8 +67,8 @@ fn main() {
                 .value_parser(["term", "csv", "json"])
                 .default_value("term"),
         )
-        .arg(arg!([object] "Celestial Object").required(true).value_parser(move |s: &str| Ok::<value::CelObj, &'static str>(cat.get(s.to_lowercase().as_str()).ok_or("No Object in catalog")?.clone())))
-        .arg(arg!([properties] ... "Properties").required(true).value_parser(parse::property))
+        .arg(arg!([object] "Celestial Object").required(true).value_parser(move |s: &str| parse::object(s, &ccheck)))
+        .arg(arg!([properties] ... "Properties").required(true).value_parser(move |s: &str| parse::property(s, &cat)))
         .get_matches();
 
     let mut myrf: RefFrame = RefFrame {

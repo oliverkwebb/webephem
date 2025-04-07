@@ -16,6 +16,7 @@ pub enum Property {
     IllumFrac,
     Rise,
     Set,
+    AngBet(CelObj),
 }
 impl fmt::Display for Property {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -35,17 +36,18 @@ impl fmt::Display for Property {
                 Property::AngDia => "Angular Diameter",
                 Property::Rise => "Rise Time",
                 Property::Set => "Set Time",
+                Property::AngBet(_) => "Angle Between Object",
             }
         )
     }
 }
 
 pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'static str> {
-    fn hemisphere(ll: Option<(pracstro::time::Period, pracstro::time::Period)>) -> bool {
+    fn hemisphere(ll: Option<(pracstro::time::Angle, pracstro::time::Angle)>) -> bool {
         if let Some((lat, _)) = ll {
-            lat.to_latitude().degrees() >= 0.0
+            lat.to_latitude().degrees() <= 0.0
         } else {
-            true
+            false
         }
     }
     match (q, obj.clone()) {
@@ -69,6 +71,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
                 .precess(time::Date::from_julian(2451545.0), rf.date),
             CrdView::Equatorial,
         )),
+        (Property::Equatorial, CelObj::Crd(s)) => Ok(Value::Crd(s, CrdView::Equatorial)),
         (Property::Horizontal, _) => {
             if rf.latlong.is_none() {
                 return Err("Need to specify a lat/long with -l");
@@ -107,6 +110,15 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
                 Some((_, y)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, y)))),
                 None => Ok(Value::RsTime(None)),
             }
+        }
+        (Property::AngBet(c), _) => {
+            let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
+                unreachable!();
+            };
+            let Value::Crd(o, _) = property_of(&c, Property::Equatorial, rf)? else {
+                unreachable!();
+            };
+            Ok(Value::Ang(p.dist(o), AngView::Angle))
         }
         (Property::Distance, CelObj::Planet(p)) => Ok(Value::Dist(p.distance(rf.date))),
         (Property::Distance, CelObj::Sun) => Ok(Value::Dist(sol::SUN.distance(rf.date))),
@@ -155,6 +167,7 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
             Ok(Value::Ang(moon::MOON.angdia(rf.date), AngView::Angle))
         }
         (Property::PhaseDefault, _) => Err("Can't get phase of a star"),
+        (_, CelObj::Crd(_)) => Err("Can't get that property for a raw coordinate"),
         (Property::AngDia, CelObj::Star(_)) => Err("Angular diameter of star not known"),
     }
 }

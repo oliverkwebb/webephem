@@ -3,7 +3,7 @@ use pracstro::{coord, sol, time};
 use std::fmt;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct RefFrame {
-    pub latlong: Option<(time::Period, time::Period)>,
+    pub latlong: Option<(time::Angle, time::Angle)>,
     pub date: time::Date,
 }
 
@@ -28,6 +28,7 @@ pub enum CelObj {
     Moon,
     Sun,
     Star(catalog::Star),
+    Crd(coord::Coord),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -40,11 +41,11 @@ pub enum AngView {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Date(time::Date),
-    Ang(time::Period, AngView),
+    Ang(time::Angle, AngView),
     Crd(coord::Coord, CrdView),
     Num(f64),
     Dist(f64),
-    Phase(time::Period, PhaseView),
+    Phase(time::Angle, PhaseView),
     RsTime(Option<time::Date>),
 }
 
@@ -63,7 +64,7 @@ impl fmt::Display for Value {
             "Waning Crescent",
         ];
 
-        fn phaseidx(ilumfrac: f64, ang: time::Period) -> usize {
+        fn phaseidx(ilumfrac: f64, ang: time::Angle) -> usize {
             match (ilumfrac, ang.degrees() > 90.0) {
                 (0.00..0.04, _) => 0,
                 (0.96..1.00, _) => 4,

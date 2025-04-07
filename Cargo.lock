@@ -149,7 +149,7 @@ checksum = "773648b94d0e5d620f64f280777445740e61fe701025087ec8b57f45c791888b"
 
 [[package]]
 name = "deskephem"
-version = "1.2.1"
+version = "1.3.0"
 dependencies = [
  "chrono",
  "clap",
@@ -225,9 +225,9 @@ checksum = "d75b0bedcc4fe52caa0e03d9f1151a323e4aa5e2d78ba3580400cd3c9e2bc4bc"
 
 [[package]]
 name = "pracstro"
-version = "0.5.3"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90784d809d6c4506de70865647d718eae9daf1e231125a497aade9072ddb2b0c"
+checksum = "f03358239bdc6c398e0e72673d97e785e1ce49cdeb78ea448b523148b84ed457"
 
 [[package]]
 name = "proc-macro2"
