@@ -43,6 +43,33 @@ mod timestep {
             ),
         }
     }
+    pub struct EphemIter {
+        now: time::Date,
+        step: Step,
+        end: time::Date,
+    }
+    impl EphemIter {
+        pub fn new(start: time::Date, step: Step, end: time::Date) -> EphemIter {
+            EphemIter {
+                now: start,
+                step,
+                end,
+            }
+        }
+    }
+    impl Iterator for EphemIter {
+        type Item = time::Date;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.now.julian() < self.end.julian() {
+                let s = self.now;
+                self.now = step_forward_date(self.now, self.step);
+                Some(s)
+            } else {
+                None
+            }
+        }
+    }
 }
 
 fn main() {
@@ -70,11 +97,8 @@ fn main() {
         .arg(arg!([object] "Celestial Object").required(true).value_parser(move |s: &str| parse::object(s, &ccheck)))
         .arg(arg!([properties] ... "Properties").required(true).value_parser(move |s: &str| parse::property(s, &cat)))
         .get_matches();
-
-    let mut myrf: RefFrame = RefFrame {
-        latlong: *matches.get_one("latlong").unwrap(),
-        date: *matches.get_one("date").unwrap(),
-    };
+    let location = *matches.get_one("latlong").unwrap();
+    let date = *matches.get_one("date").unwrap();
     let formatter = match matches.get_one::<String>("format").unwrap().as_str() {
         "term" => output::TERM,
         "csv" => output::CSV,
@@ -82,15 +106,15 @@ fn main() {
         _ => todo!(),
     };
 
-    let obj = matches.get_one::<CelObj>("object").unwrap();
+    let obj = matches.get_one::<CelObj>("object").unwrap().clone();
     let propl: Vec<query::Property> = matches
         .get_many::<query::Property>("properties")
         .unwrap()
         .cloned()
         .collect();
 
-    let q = |myrf: RefFrame| {
-        query::run(obj, &propl, &myrf).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
+    let q = |loc: Location, d: time::Date| {
+        query::run(&obj, &propl, loc, d).unwrap_or_else(|x| panic!("Failed to parse query: {x}"))
     };
 
     (formatter.start)();
@@ -98,14 +122,12 @@ fn main() {
     if let Some((start, step, end)) =
         matches.get_one::<(time::Date, timestep::Step, time::Date)>("ephem")
     {
-        myrf.date = *start;
         (formatter.propheader)(&propl);
-        while myrf.date.julian() < end.julian() {
-            (formatter.ephemq)(q(myrf), &propl, myrf.date);
-            myrf.date = timestep::step_forward_date(myrf.date, *step);
-        }
+        timestep::EphemIter::new(*start, *step, *end)
+            .map(|date| (q(location, date), date))
+            .for_each(|(r, date)| (formatter.ephemq)(r, &propl, date))
     } else {
-        (formatter.query)(q(myrf));
+        (formatter.query)(q(location, date));
     }
 
     (formatter.footer)();

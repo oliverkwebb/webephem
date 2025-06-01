@@ -1,9 +1,12 @@
 use crate::catalog;
 use pracstro::{coord, sol, time};
 use std::fmt;
+
+pub type Location = Option<(time::Angle, time::Angle)>;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct RefFrame {
-    pub latlong: Option<(time::Angle, time::Angle)>,
+    pub latlong: Location,
     pub date: time::Date,
 }
 
@@ -51,8 +54,8 @@ pub enum Value {
 
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        const EMOJIS: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
-        const SEMOJI: [&str; 8] = ["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒"];
+        const EMOJIS: [&str; 8] = ["🌑", "🌘", "🌗", "🌖", "🌕", "🌔", "🌓", "🌒"];
+        const SEMOJI: [&str; 8] = ["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"];
         const PNAMES: [&str; 8] = [
             "New",
             "Waxing Crescent",
@@ -192,8 +195,7 @@ impl fmt::Display for Value {
                     write!(f, "{:.5}", p.to_latitude().degrees())
                 }
                 Value::Ang(p, AngView::Time) => {
-                    let (h, m, s) = p.clock();
-                    write!(f, "\"{:02}h{:02}m{:02}s\"", h, m, s.trunc())
+                    write!(f, "{:.5}", p.decimal())
                 }
                 Value::Dist(d) => write!(f, "{}", d),
                 Value::Crd(c, CrdView::Equatorial) => {

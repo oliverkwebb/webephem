@@ -176,13 +176,21 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, &'
 pub fn run(
     object: &CelObj,
     proplist: &[Property],
-    rf: &RefFrame,
+    latlong: Location,
+    date: time::Date,
 ) -> Result<Vec<Value>, &'static str> {
     Ok(proplist
         .iter()
         .map(|prop| {
-            property_of(object, prop.clone(), rf)
-                .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
+            property_of(
+                object,
+                prop.clone(),
+                &RefFrame {
+                    latlong,
+                    date,
+                },
+            )
+            .unwrap_or_else(|e| panic!("Error on property {prop}: {e}"))
         })
         .collect())
 }

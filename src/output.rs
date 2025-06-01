@@ -65,7 +65,6 @@ fn csv_q(rs: Vec<Value>) {
             .join(",")
     );
 }
-
 fn csv_eq(rs: Vec<Value>, _: &[Property], d: time::Date) {
     println!(
         "{},{}",

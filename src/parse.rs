@@ -1,6 +1,4 @@
-use crate::query::Property;
-use crate::timestep;
-use crate::value::CelObj;
+use crate::{value, timestep, query::Property};
 use chrono::prelude::*;
 use pracstro::{coord, time};
 
@@ -105,7 +103,7 @@ pub fn ephemq(s: &str) -> Result<(time::Date, timestep::Step, time::Date), &'sta
     Ok((date(start)?, step(ste)?, date(end)?))
 }
 
-pub fn latlong(s: &str) -> Result<Option<(time::Angle, time::Angle)>, &'static str> {
+pub fn latlong(s: &str) -> Result<value::Location, &'static str> {
     fn long(s: &str) -> Result<time::Angle, &'static str> {
         if let Ok(n) = s.parse::<f64>() {
             Ok(time::Angle::from_degrees(n))
@@ -132,20 +130,20 @@ pub fn latlong(s: &str) -> Result<Option<(time::Angle, time::Angle)>, &'static s
 
 pub fn object(
     sm: &str,
-    cat: &std::collections::HashMap<&'static str, CelObj>,
-) -> Result<CelObj, &'static str> {
+    cat: &std::collections::HashMap<&'static str, value::CelObj>,
+) -> Result<value::CelObj, &'static str> {
     let s = sm.to_lowercase();
     if s.starts_with("latlong:") {
         let ll = latlong(s.strip_prefix("latlong:").ok_or("Bad prefix")?)?
             .ok_or("Raw coordinate must not be none")?;
-        return Ok(CelObj::Crd(coord::Coord::from_equatorial(ll.1, ll.0)));
+        return Ok(value::CelObj::Crd(coord::Coord::from_equatorial(ll.1, ll.0)));
     };
     cat.get(s.as_str()).cloned().ok_or("Unknown Object")
 }
 
 pub fn property(
     sm: &str,
-    cat: &std::collections::HashMap<&'static str, CelObj>,
+    cat: &std::collections::HashMap<&'static str, value::CelObj>,
 ) -> Result<Property, &'static str> {
     let s = &sm.to_lowercase();
     if s.starts_with("angbetween:") {

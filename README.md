@@ -1,13 +1,18 @@
 # deskephem - Modular CLI Astronomy
 
+deskephem is a CLI astronomy calculator, that can print things like moon phases, approximate sunrise and sunset times, planet and star locations, and more.
+
 [![crates.io](https://img.shields.io/crates/v/deskephem)](https://crates.io/crates/deskephem)
 [![License](https://img.shields.io/badge/license-0BSD-blue.svg)](https://raw.githubusercontent.com/oliverkwebb/deskephem/main/LICENSE)
 ![GitHub last commit](https://img.shields.io/github/last-commit/oliverkwebb/deskephem)
 
+
 ```
 $ deskephem moon phase # Werewolf early warning system
 🌒 Waxing Crescent (5.0%)
-$ deskephem -l 30n,60w -E now,1h,+4h venus horiz  # Table of the location of venus, 1 hour for 4 hours into the future
+$ deskephem sun rise set -l 40,-95 # Sunrise and Sunset
+06:53 19:47
+$ deskephem -l 30n,60w -E now,1h,+4h venus horiz
 ===================================================
          Date             Coordinates (Azi/Alt)    
 ===================================================
@@ -16,11 +21,12 @@ $ deskephem -l 30n,60w -E now,1h,+4h venus horiz  # Table of the location of ven
  2025-04-01T01:50:03  67°53′57.5″ -23°00′-10.4″    
  2025-04-01T02:50:03  76°46′8.2″ -11°00′-25.5″     
  2025-04-01T03:50:03  84°33′9.8″ +1°20′41.0″       
-$ deskephem -d 1781-03-13 -l 53n,1.8w Uranus horiz magnitude # Location and brightness of Uranus at William Herschel's first observation
+# Location and brightness of Uranus at William Herschel's first observation
+$ deskephem -d 1781-03-13 -l 53n,1.8w Uranus horiz magnitude
 278°45'42.91" 23°22'1.52" 5.60
 ```
 
-deskephem is a CLI astronomy calculator for celestial objects such as the moon, planets, stars, and sun:
+It has a catalog of the planets, the moon and sun, and about 100 common stars. Of which it can print:
 
 * Coordinates in the sky (equatorial, horizontal, ecliptic)
 * Phase (Emoji, Illuminated Fraction, Name)
@@ -29,8 +35,6 @@ deskephem is a CLI astronomy calculator for celestial objects such as the moon, 
 * Distance
 * Angular Size
 * Angles between other objects in the sky
-
-It's catalog contains the moon, sun, planets, and about 100 common stars
 
 It supports outputs in json, csv, and plain text. It can also generate tables of output:
 
@@ -44,6 +48,11 @@ Date,Coordinates (Azi/Alt)
 2025-04-01T00:56:28,342°40′49.8″ -49°00′-8.6″
 2025-04-01T01:56:28,05°53′2.9″ -50°00′-38.6″
 2025-04-01T02:56:28,27°56′2.2″ -46°00′-36.1″
+```
+
+deskephem is a wrapper around the [`pracstro`](https://github.com/oliverkwebb/pracstro) astronomy library.
+
+```
 $ time deskephem -E 1600-01-01,1mon,9999-06-01 mars ecliptic # Query is ran ~100k times
 ===================================================
          Date            Coordinates (Ecliptic)    
@@ -53,8 +62,6 @@ $ time deskephem -E 1600-01-01,1mon,9999-06-01 mars ecliptic # Query is ran ~100
 [...]
 1.89 user 0.20 system
 ```
-
-deskephem is a wrapper around the [`pracstro`](https://github.com/oliverkwebb/pracstro) astronomy library
 
 # Parameters
 

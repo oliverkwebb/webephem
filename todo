@@ -1,6 +1,4 @@
 Bugs/Internal:
-- [*] pre-1582 ephemeris goes into an infinite loop
- - [ ] ephem can still go into infinite loops aroun 1582
 - [ ] test cases where reasonable
 - [ ] documentation and comments where reasonable
  - [ ] timestep
@@ -9,15 +7,9 @@ Bugs/Internal:
  - [ ] query
  - [ ] value
 Features:
-- [*] Raw coordinates for stars/latlong
-- [*] **Full** readme with examples
 - [ ] Article on rust CLI astronomy
-- [ ](?)  Anstyle formatted terminal tables
-- [ ](?)  Smart width formatting for term ephemeris (i.e. not always 30 characters wide)
 - [ ] Moar Calculations
- - [*](?) Binary Operators between objects (Angle Between, Distance between)
- - [*] Rise and set time properties
-   - [ ] Do coordinate interpolation for {sun,moon}{rise,set}
+ - [ ] Coordinate Interpolated Rise and Set times
  - [ ](?) add minor planets and other solar objects
  - [ ](?) Constellation bounds (i.e. "what constellation is this is")
  - [ ](?) Some Deep Space Probes? (Dynamic objects)
