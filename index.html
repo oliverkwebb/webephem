@@ -1,36 +1,44 @@
 <!doctype html>
-<hhtml>
+<html>
     <head> </head>
     <body>
+
+        <p>
+            <input type="text" id="object">
+            <input type="text" id="property">
+            <input type="datetime-local" id="date">
+            <input type="text" id="lat,long">
+            <button id="submit">Submit:</button>
+            <div id="result"></div>
+        </p>
+
         <script>
             webephem = {};
         </script>
         <script type="module">
             import init, {
                 wasm_query,
-                gen_catalog_ptr,
+                catalog_init,
             } from "./pkg/webephem.js";
-            let catalog;
 
-            webephem.wasm_query = wasm_query;
+            function calculate() {
+              console.log("meow");
+              document.querySelector("#result").textContent = wasm_query(
+                document.querySelector("#object").value,
+                document.querySelector("#property").value,
+                document.querySelector("#date").valueAsDate.getTime()/1000,
+                undefined,
+                undefined,
+                false,
+              );
+            }
 
             async function run() {
                 await init();
-
-                catalog = gen_catalog_ptr();
-                console.log(
-                    wasm_query(
-                        "moon",
-                        "equ",
-                        5000,
-                        undefined,
-                        undefined,
-                        true,
-                        catalog,
-                    ),
-                );
+                catalog_init();
+                document.querySelector("#submit").addEventListener("click", calculate);
             }
             run();
         </script>
     </body>
-</hhtml>
+</html>

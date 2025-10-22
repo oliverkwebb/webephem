@@ -1,18 +1,23 @@
 //! WASM frontend for websites and other tools
 
-use std::collections::HashMap;
+use std::mem::MaybeUninit;
 
 use crate::*;
 use pracstro::time::Angle;
 use wasm_bindgen::prelude::*;
 extern crate web_sys;
 
+/// This is needed for speed, to not format the catalog every query.
+/// My testing showed the query speed reduced by a factor of around 20 with this.
+static mut CATALOG: MaybeUninit<std::collections::HashMap<&'static str, crate::value::CelObj>> =
+    MaybeUninit::uninit();
+
+/// Initializes the catalog in a private hashmap value
 #[wasm_bindgen]
-pub unsafe fn gen_catalog_ptr() -> *const () {
-    let cat = catalog::read();
-    let ptr = &cat as *const HashMap<&'static str, value::CelObj> as *const ();
-    std::mem::forget(cat);
-    ptr
+pub fn catalog_init() {
+    unsafe {
+        CATALOG.write(crate::catalog::read());
+    }
 }
 
 #[wasm_bindgen]
@@ -23,16 +28,14 @@ pub unsafe fn wasm_query(
     lat: Option<f64>,
     long: Option<f64>,
     rawdata: bool,
-    catalog: usize,
 ) -> Result<String, String> {
-    let catalog = catalog as *const HashMap<&'static str, value::CelObj>;
     let latlong = if let (Some(x), Some(y)) = (lat, long) {
         Some((Angle::from_degrees(x), Angle::from_degrees(y)))
     } else {
         None
     };
-    let property = parse::property(property, &*catalog)?;
-    let object = parse::object(object, &*catalog)?;
+    let property = parse::property(property, CATALOG.assume_init_ref())?;
+    let object = parse::object(object, CATALOG.assume_init_ref())?;
     let date = pracstro::time::Date::from_unix(time);
 
     let value = query::property_of(
