@@ -6,16 +6,28 @@
             webephem = {};
         </script>
         <script type="module">
-            import init, { wasm_query, catalog_init } from "./pkg/deskephem.js";
+            import init, {
+                wasm_query,
+                gen_catalog_ptr,
+            } from "./pkg/webephem.js";
+            let catalog;
 
             webephem.wasm_query = wasm_query;
 
             async function run() {
                 await init();
 
-                catalog_init();
+                catalog = gen_catalog_ptr();
                 console.log(
-                    wasm_query("moon", "equ", 5000, undefined, undefined, true),
+                    wasm_query(
+                        "moon",
+                        "equ",
+                        5000,
+                        undefined,
+                        undefined,
+                        true,
+                        catalog,
+                    ),
                 );
             }
             run();
