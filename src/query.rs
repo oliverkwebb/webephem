@@ -1,7 +1,9 @@
 use crate::value::*;
 use pracstro::{moon, sol, time};
 use std::fmt;
+use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
 #[derive(Clone, Debug, PartialEq)]
 pub enum Property {
     Equatorial,
@@ -16,7 +18,6 @@ pub enum Property {
     IllumFrac,
     Rise,
     Set,
-    AngBet(CelObj),
 }
 impl fmt::Display for Property {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -36,7 +37,6 @@ impl fmt::Display for Property {
                 Property::AngDia => "Angular Diameter",
                 Property::Rise => "Rise Time",
                 Property::Set => "Set Time",
-                Property::AngBet(_) => "Angle Between Object",
             }
         )
     }
@@ -110,15 +110,6 @@ pub fn property_of(obj: &CelObj, q: Property, rf: &RefFrame) -> Result<Value, St
                 Some((_, y)) => Ok(Value::RsTime(Some(time::Date::from_time(rf.date, y)))),
                 None => Ok(Value::RsTime(None)),
             }
-        }
-        (Property::AngBet(c), _) => {
-            let Value::Crd(p, _) = property_of(obj, Property::Equatorial, rf)? else {
-                unreachable!();
-            };
-            let Value::Crd(o, _) = property_of(&c, Property::Equatorial, rf)? else {
-                unreachable!();
-            };
-            Ok(Value::Ang(p.dist(o), AngView::Angle))
         }
         (Property::Distance, CelObj::Planet(p)) => Ok(Value::Dist(p.distance(rf.date))),
         (Property::Distance, CelObj::Sun) => Ok(Value::Dist(sol::SUN.distance(rf.date))),

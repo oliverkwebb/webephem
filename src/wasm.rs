@@ -1,9 +1,8 @@
 //! WASM frontend for websites and other tools
 
-use std::mem::MaybeUninit;
-
-use crate::*;
+use crate::{query::Property, *};
 use pracstro::time::Angle;
+use std::mem::MaybeUninit;
 use wasm_bindgen::prelude::*;
 extern crate web_sys;
 
@@ -14,16 +13,14 @@ static mut CATALOG: MaybeUninit<std::collections::HashMap<&'static str, crate::v
 
 /// Initializes the catalog in a private hashmap value
 #[wasm_bindgen]
-pub fn catalog_init() {
-    unsafe {
-        CATALOG.write(crate::catalog::read());
-    }
+pub unsafe fn catalog_init() {
+    CATALOG.write(crate::catalog::read());
 }
 
 #[wasm_bindgen]
 pub unsafe fn wasm_query(
     object: &str,
-    property: &str,
+    property: Property,
     time: f64,
     lat: Option<f64>,
     long: Option<f64>,
@@ -34,7 +31,6 @@ pub unsafe fn wasm_query(
     } else {
         None
     };
-    let property = parse::property(property, CATALOG.assume_init_ref())?;
     let object = parse::object(object, CATALOG.assume_init_ref())?;
     let date = pracstro::time::Date::from_unix(time);
 
