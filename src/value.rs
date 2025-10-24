@@ -50,6 +50,7 @@ pub enum Value {
     Dist(f64),
     Phase(time::Angle, PhaseView),
     RsTime(Option<time::Date>),
+    CartCoord((f64, f64, f64)),
 }
 
 impl fmt::Display for Value {
@@ -160,6 +161,7 @@ impl fmt::Display for Value {
                         write!(f, "{}", d.unwrap().unix())
                     }
                 }
+                Value::CartCoord((x, y, z)) => write!(f, "{}, {}, {}", x, y, z),
             }
         } else {
             match self {
@@ -225,6 +227,7 @@ impl fmt::Display for Value {
                     write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
+                Value::CartCoord((x, y, z)) => write!(f, "{}, {}, {}", x, y, z),
             }
         }
     }

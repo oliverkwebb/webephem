@@ -1,5 +1,5 @@
 use crate::value::*;
-use pracstro::{moon, sol, time};
+use pracstro::{coord, moon, sol, time};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -17,6 +17,7 @@ pub enum Property {
     IllumFrac,
     Rise,
     Set,
+    Cartesian,
 }
 
 pub fn property_of(
@@ -147,5 +148,10 @@ pub fn property_of(
         (Property::AngDia, CelObj::Star(_)) => {
             Err("Angular diameter of star not known".to_string())
         }
+        (Property::Cartesian, CelObj::Sun) => Ok(Value::CartCoord((sol::SUN.locationcart(date)))),
+        (Property::Cartesian, CelObj::Moon | CelObj::Star(_)) => {
+            todo!()
+        }
+        (Property::Cartesian, CelObj::Planet(p)) => Ok(Value::CartCoord((p.locationcart(date)))),
     }
 }

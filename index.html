@@ -30,6 +30,7 @@
             <option value="9">Angular Diameter</option>
             <option value="10">Rise Time</option>
             <option value="11">Set Time</option>
+            <option value="12">Cartesian Coordinates (AU)</option>
             </select><br>
             <label>Date: </label><input type="date" id="date"><br>
             <label>Latitude: </label><input type="text" id="lat"> and
@@ -65,7 +66,7 @@
                 numberUndefWhenEmpty(document.querySelector("#long").value),
                 document.querySelector("#dataraw").checked,
               );
-              if (Number(property) >= 10) {
+              if (Number(property) >= 10 && Number(property) <= 11) {
                 document.querySelector("#result").textContent = new Date(Number(result)*1000).toLocaleString();
               } else {
                 document.querySelector("#result").textContent = result;
