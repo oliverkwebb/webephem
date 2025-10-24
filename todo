@@ -7,7 +7,6 @@ Bugs/Internal:
  - [ ] query
  - [ ] value
 Features:
-- [ ] Article on rust CLI astronomy
 - [ ] Moar Calculations
  - [ ] Coordinate Interpolated Rise and Set times
  - [ ](?) add minor planets and other solar objects

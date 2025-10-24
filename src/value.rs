@@ -209,28 +209,20 @@ impl fmt::Display for Value {
                         Value::Ang(d.1, AngView::Latitude)
                     )
                 }
-                Value::Phase(pa, PhaseView::Default(h)) => {
-                    let ilf = (1.0 - pa.cos()) / 2.0;
-                    let pi = phaseidx(ilf, *pa);
-                    write!(
-                        f,
-                        "\"{} {} ({:2.1}%)\"",
-                        if *h { EMOJIS[pi] } else { SEMOJI[pi] },
-                        PNAMES[pi],
-                        ilf * 100.0
-                    )
+                Value::Phase(pa, PhaseView::Default(_)) => {
+                    write!(f, "{}", pa.degrees())
                 }
                 Value::Phase(pa, PhaseView::Emoji(true)) => {
-                    write!(f, "\"{}\"", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+                    write!(f, "{}", EMOJIS[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Phase(pa, PhaseView::Emoji(false)) => {
-                    write!(f, "\"{}\"", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+                    write!(f, "{}", SEMOJI[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Phase(pa, PhaseView::Illumfrac) => {
-                    write!(f, "{:2.1}", 100.0 * (1.0 - pa.cos()) / 2.0)
+                    write!(f, "{}", (1.0 - pa.cos()) / 2.0)
                 }
                 Value::Phase(pa, PhaseView::PhaseName) => {
-                    write!(f, "\"{}\"", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
+                    write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
             }
