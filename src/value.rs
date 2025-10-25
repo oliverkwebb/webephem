@@ -187,7 +187,7 @@ impl fmt::Display for Value {
                     let d = c.equatorial();
                     write!(
                         f,
-                        "[{:#}, {:#}]",
+                        "{:#},{:#}",
                         Value::Ang(d.0, AngView::Time),
                         Value::Ang(d.1, AngView::Latitude)
                     )
@@ -197,7 +197,7 @@ impl fmt::Display for Value {
                     let d = c.horizon(rf.date, rf.date.time(), lat, long);
                     write!(
                         f,
-                        "[{:#}, {:#}]",
+                        "{:#},{:#}",
                         Value::Ang(d.0, AngView::Angle),
                         Value::Ang(d.1.refract(), AngView::Latitude)
                     )
@@ -206,7 +206,7 @@ impl fmt::Display for Value {
                     let d = c.ecliptic(*d);
                     write!(
                         f,
-                        "[{:#}, {:#}]",
+                        "{:#},{:#}",
                         Value::Ang(d.0, AngView::Angle),
                         Value::Ang(d.1, AngView::Latitude)
                     )
@@ -227,7 +227,7 @@ impl fmt::Display for Value {
                     write!(f, "{}", PNAMES[phaseidx((1.0 - pa.cos()) / 2.0, *pa)])
                 }
                 Value::Num(n) => write!(f, "{:0.2}", n),
-                Value::CartCoord((x, y, z)) => write!(f, "{}, {}, {}", x, y, z),
+                Value::CartCoord((x, y, z)) => write!(f, "{},{},{}", x, y, z),
             }
         }
     }
